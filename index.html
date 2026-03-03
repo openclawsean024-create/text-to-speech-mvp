@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字轉語音 - v1.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #0071e3; --accent: #34c759; --danger: #ff3b30; --text: #1d1d1f; --text2: #86868b; --bg: #f5f5f7; --card: #fff; --border: #d2d2d7; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+        
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h1 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: var(--text2); margin-top: 8px; font-size: 14px; }
+        .version { font-size: 11px; color: var(--primary); background: rgba(0,113,227,0.1); padding: 4px 10px; border-radius: 20px; display: inline-block; margin-top: 8px; }
+        
+        .card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        
+        .char-count { text-align: right; font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+        .char-count.warning { color: var(--danger); }
+        
+        textarea { width: 100%; height: 180px; padding: 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; font-family: inherit; resize: none; }
+        textarea:focus { outline: none; border-color: var(--primary); }
+        
+        .voice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+        .voice-item { padding: 14px 10px; border: 2px solid var(--border); border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .voice-item:hover { border-color: var(--primary); }
+        .voice-item.selected { border-color: var(--primary); background: rgba(0,113,227,0.1); }
+        .voice-item .name { font-weight: 600; font-size: 14px; }
+        .voice-item .lang { font-size: 11px; color: var(--text2); margin-top: 4px; }
+        
+        .speed-presets { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .speed-btn { padding: 8px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .speed-btn:hover { border-color: var(--primary); }
+        .speed-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        
+        .settings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+        .setting label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+        .setting input { width: 100%; }
+        .setting .val { text-align: center; font-size: 11px; color: var(--text2); margin-top: 4px; }
+        
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #0063c9; }
+        
+        .result { display: none; margin-top: 20px; }
+        .result.show { display: block; }
+        
+        .progress-container { margin-top: 20px; }
+        .progress-bar { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.1s; }
+        .progress-time { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-top: 8px; }
+        
+        .audio-player { margin-top: 16px; }
+        .audio-player audio { width: 100%; }
+        
+        .history { margin-top: 20px; }
+        .history-title { font-weight: 600; font-size: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .history-list { max-height: 200px; overflow-y: auto; }
+        .history-item { padding: 12px; background: var(--bg); border-radius: 10px; margin-bottom: 8px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .history-item:hover { background: rgba(0,113,227,0.1); }
+        .history-item .time { font-size: 11px; color: var(--text2); margin-top: 4px; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; margin-right: 6px; }
+        .badge.on { background: rgba(52,199,89,0.15); color: var(--accent); }
+        
+        .changelog { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 12px; margin-top: 16px; font-size: 12px; }
+        .changelog-title { font-weight: 600; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>文字轉語音</h1>
+            <p>輸入文字，轉換為語音播放</p>
+            <span class="version">v1.1 - 新增進度條/5000字</span>
+        </div>
+        
+        <div class="card">
+            <div class="char-count"><span id="charCount">0</span>/5000 字</div>
+            <textarea id="textInput" placeholder="請輸入要轉換的文字..."></textarea>
+        </div>
+        
+        <div class="card">
+            <div style="font-weight:600;font-size:14px;margin-bottom:12px;">選擇聲音</div>
+            <div class="voice-grid">
+                <div class="voice-item selected" data-voice="zh-CN" onclick="selectVoice(this)">
+                    <div class="name">曉曉</div>
+                    <div class="lang">中文-女</div>
+                </div>
+                <div class="voice-item" data-voice="zh-TW" onclick="selectVoice(this)">
+                    <div class="name">雲希</div>
+                    <div class="lang">中文-男</div>
+                </div>
+                <div class="voice-item" data-voice="en-US" onclick="selectVoice(this)">
+                    <div class="name">Jenny</div>
+                    <div class="lang">英文-女</div>
+                </div>
+                <div class="voice-item" data-voice="ja-JP" onclick="selectVoice(this)">
+                    <div class="name">七海</div>
+                    <div class="lang">日文-女</div>
+                </div>
+                <div class="voice-item" data-voice="ko-KR" onclick="selectVoice(this)">
+                    <div class="name">SunHi</div>
+                    <div class="lang">韓文-女</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div style="font-weight:600;font-size:14px;margin-bottom:12px;">語速預設</div>
+            <div class="speed-presets">
+                <button class="speed-btn" onclick="setSpeed(0.75)">0.75x</button>
+                <button class="speed-btn active" onclick="setSpeed(1)">1x</button>
+                <button class="speed-btn" onclick="setSpeed(1.25)">1.25x</button>
+                <button class="speed-btn" onclick="setSpeed(1.5)">1.5x</button>
+                <button class="speed-btn" onclick="setSpeed(2)">2x</button>
+            </div>
+            
+            <div class="settings">
+                <div class="setting">
+                    <label>語速</label>
+                    <input type="range" id="speed" min="0.5" max="2" step="0.25" value="1" oninput="updateSetting('speed')">
+                    <div class="val" id="speedVal">1x</div>
+                </div>
+                <div class="setting">
+                    <label>音調</label>
+                    <input type="range" id="pitch" min="-2" max="2" step="0.1" value="0" oninput="updateSetting('pitch')">
+                    <div class="val" id="pitchVal">0</div>
+                </div>
+                <div class="setting">
+                    <label>音量</label>
+                    <input type="range" id="volume" min="0" max="1" step="0.1" value="1" oninput="updateSetting('volume')">
+                    <div class="val" id="volumeVal">100%</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" id="convertBtn" onclick="convertText()">開始轉換</button>
+        
+        <div class="result" id="result">
+            <div class="card">
+                <div class="progress-container">
+                    <div style="font-weight:600;margin-bottom:8px;">轉換完成！</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-time">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+                
+                <div class="audio-player">
+                    <audio id="audioPlayer" controls></audio>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 歷史記錄 -->
+        <div class="card history">
+            <div class="history-title">
+                轉換歷史
+                <button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">清除</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div>
+            </div>
+        </div>
+        
+        <div class="changelog">
+            <div class="changelog-title">📋 v1.1 更新內容</div>
+            <ul style="margin-left:16px;">
+                <li>文字限制從 1000 字提升到 <strong>5000 字</strong></li>
+                <li>新增<strong>播放進度條</strong>顯示</li>
+                <li>新增<strong>語速預設按鈕</strong>（0.75x / 1x / 1.25x / 1.5x / 2x）</li>
+                <li>新增<strong>轉換歷史記錄</strong></li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        let selectedVoice = localStorage.getItem('voice') || 'zh-CN';
+        let history = JSON.parse(localStorage.getItem('ttsHistory')) || [];
+        
+        // 初始化
+        document.getElementById('speed').value = localStorage.getItem('speed') || 1;
+        document.getElementById('pitch').value = localStorage.getItem('pitch') || 0;
+        document.getElementById('volume').value = localStorage.getItem('volume') || 1;
+        updateSetting('speed');
+        updateSetting('pitch');
+        updateSetting('volume');
+        
+        document.querySelectorAll('.voice-item').forEach(el => {
+            el.classList.toggle('selected', el.dataset.voice === selectedVoice);
+        });
+        
+        // 字數計算
+        document.getElementById('textInput').addEventListener('input', function() {
+            const len = this.value.length;
+            const counter = document.getElementById('charCount');
+            counter.textContent = len;
+            counter.parentElement.classList.toggle('warning', len > 5000);
+        });
+        
+        function updateSetting(type) {
+            const val = document.getElementById(type).value;
+            let display = val + 'x';
+            if (type === 'volume') display = Math.round(val * 100) + '%';
+            if (type === 'pitch') display = (val > 0 ? '+' : '') + val;
+            document.getElementById(type + 'Val').textContent = display;
+            localStorage.setItem(type, val);
+        }
+        
+        function selectVoice(el) {
+            document.querySelectorAll('.voice-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedVoice = el.dataset.voice;
+            localStorage.setItem('voice', selectedVoice);
+        }
+        
+        function setSpeed(val) {
+            document.getElementById('speed').value = val;
+            updateSetting('speed');
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.textContent) === val);
+            });
+        }
+        
+        function convertText() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) { alert('請輸入文字'); return; }
+            if (text.length > 5000) {
+                alert('文字不能超過 5000 字，目前：' + text.length + ' 字');
+                return;
+            }
+            
+            // 儲存到歷史
+            addToHistory(text);
+            
+            // 建立語音
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = parseFloat(document.getElementById('speed').value);
+            utterance.pitch = 1 + parseFloat(document.getElementById('pitch').value) * 0.5;
+            utterance.volume = parseFloat(document.getElementById('volume').value);
+            
+            // 嘗試使用選擇的聲音
+            const voices = window.speechSynthesis.getVoices();
+            const langMap = {
+                'zh-CN': ['Chinese', 'Mandarin', 'zh'],
+                'zh-TW': ['Chinese', 'Mandarin', 'zh'],
+                'en-US': ['en'],
+                'ja-JP': ['ja'],
+                'ko-KR': ['ko']
+            };
+            
+            const keywords = langMap[selectedVoice] || [selectedVoice];
+            for (const kw of keywords) {
+                const found = voices.find(v => v.lang.toLowerCase().includes(kw.toLowerCase()));
+                if (found) { utterance.voice = found; break; }
+            }
+            
+            // 設置音頻元素
+            const audio = document.getElementById('audioPlayer');
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const dest = audioCtx.createMediaStreamDestination();
+            
+            utterance.onboundary = function(event) {
+                if (event.name === 'word') {
+                    const progress = (event.charIndex / text.length) * 100;
+                    document.getElementById('progressFill').style.width = progress + '%';
+                }
+            };
+            
+            utterance.onend = function() {
+                document.getElementById('progressFill').style.width = '100%';
+            };
+            
+            window.speechSynthesis.speak(utterance);
+            
+            // 顯示結果
+            document.getElementById('result').classList.add('show');
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+            
+            // 重置進度條
+            document.getElementById('progressFill').style.width = '0%';
+        }
+        
+        function addToHistory(text) {
+            const item = {
+                text: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+                fullText: text,
+                time: new Date().toLocaleString('zh-TW')
+            };
+            history.unshift(item);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('ttsHistory', JSON.stringify(history));
+            renderHistory();
+        }
+        
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                list.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div>';
+                return;
+            }
+            
+            list.innerHTML = history.map((item, idx) => `
+                <div class="history-item" onclick="loadHistory(${idx})">
+                    ${item.text}
+                    <div class="time">${item.time}</div>
+                </div>
+            `).join('');
+        }
+        
+        function loadHistory(idx) {
+            const item = history[idx];
+            document.getElementById('textInput').value = item.fullText;
+            document.getElementById('charCount').textContent = item.fullText.length;
+        }
+        
+        function clearHistory() {
+            if (confirm('確定清除所有歷史記錄？')) {
+                history = [];
+                localStorage.removeItem('ttsHistory');
+                renderHistory();
+            }
+        }
+        
+        // 初始化歷史
+        renderHistory();
+    </script>
+</body>
+</html>
