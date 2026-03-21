@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字轉語音 - MVP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #0071e3; --accent: #34c759; --danger: #ff3b30; --text: #1d1d1f; --text2: #86868b; --bg: #f5f5f7; --card: #fff; --border: #d2d2d7; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+        
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h1 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: var(--text2); margin-top: 8px; font-size: 14px; }
+        
+        .card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        
+        .char-count { text-align: right; font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+        .char-count.warning { color: var(--danger); }
+        
+        textarea { width: 100%; height: 150px; padding: 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; font-family: inherit; resize: none; }
+        textarea:focus { outline: none; border-color: var(--primary); }
+        
+        .voice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+        .voice-item { padding: 14px 10px; border: 2px solid var(--border); border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .voice-item:hover { border-color: var(--primary); }
+        .voice-item.selected { border-color: var(--primary); background: rgba(0,113,227,0.1); }
+        .voice-item .name { font-weight: 600; font-size: 14px; }
+        .voice-item .lang { font-size: 11px; color: var(--text2); margin-top: 4px; }
+        
+        .settings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+        .setting label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+        .setting input { width: 100%; }
+        .setting .val { text-align: center; font-size: 11px; color: var(--text2); margin-top: 4px; }
+        
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #0063c9; }
+        
+        .result { display: none; margin-top: 20px; }
+        .result.show { display: block; }
+        .result audio { width: 100%; margin-bottom: 12px; }
+        
+        .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 16px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.3s; }
+        .progress-text { text-align: center; font-size: 14px; color: var(--text2); margin-top: 8px; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; margin-right: 6px; }
+        .badge.on { background: rgba(52,199,89,0.15); color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>文字轉語音</h1>
+            <p>輸入文字，轉換為語音播放</p>
+        </div>
+        
+        <div class="card">
+            <div class="char-count"><span id="charCount">0</span>/1000 字</div>
+            <textarea id="textInput" placeholder="請輸入要轉換的文字...&#10;&#10;例如：&#10;您好，這是我的有声书测试内容。请告诉我这个功能好不好用？"></textarea>
+        </div>
+        
+        <div class="card">
+            <div style="font-weight:600;font-size:14px;margin-bottom:12px;">選擇聲音</div>
+            <div class="voice-grid">
+                <div class="voice-item selected" data-voice="zh-CN" onclick="selectVoice(this)">
+                    <div class="name">曉曉</div>
+                    <div class="lang">中文-女</div>
+                </div>
+                <div class="voice-item" data-voice="zh-TW" onclick="selectVoice(this)">
+                    <div class="name">雲希</div>
+                    <div class="lang">中文-男</div>
+                </div>
+                <div class="voice-item" data-voice="en-US" onclick="selectVoice(this)">
+                    <div class="name">Jenny</div>
+                    <div class="lang">英文-女</div>
+                </div>
+                <div class="voice-item" data-voice="ja-JP" onclick="selectVoice(this)">
+                    <div class="name">七海</div>
+                    <div class="lang">日文-女</div>
+                </div>
+                <div class="voice-item" data-voice="ko-KR" onclick="selectVoice(this)">
+                    <div class="name">SunHi</div>
+                    <div class="lang">韓文-女</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="settings">
+                <div class="setting">
+                    <label>語速</label>
+                    <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1" oninput="updateSetting('speed')">
+                    <div class="val" id="speedVal">1.0x</div>
+                </div>
+                <div class="setting">
+                    <label>音調</label>
+                    <input type="range" id="pitch" min="-2" max="2" step="0.1" value="0" oninput="updateSetting('pitch')">
+                    <div class="val" id="pitchVal">0</div>
+                </div>
+                <div class="setting">
+                    <label>音量</label>
+                    <input type="range" id="volume" min="0" max="1" step="0.1" value="1" oninput="updateSetting('volume')">
+                    <div class="val" id="volumeVal">100%</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" id="convertBtn" onclick="convertText()">開始轉換</button>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+        
+        <div class="result" id="result">
+            <div class="card">
+                <div style="font-weight:600;margin-bottom:12px;">轉換完成！</div>
+                <audio id="audioPlayer" controls></audio>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let selectedVoice = localStorage.getItem('voice') || 'zh-CN';
+        
+        // 初始化
+        document.getElementById('speed').value = localStorage.getItem('speed') || 1;
+        document.getElementById('pitch').value = localStorage.getItem('pitch') || 0;
+        document.getElementById('volume').value = localStorage.getItem('volume') || 1;
+        updateSetting('speed');
+        updateSetting('pitch');
+        updateSetting('volume');
+        
+        // 恢復選擇的聲音
+        document.querySelectorAll('.voice-item').forEach(el => {
+            el.classList.toggle('selected', el.dataset.voice === selectedVoice);
+        });
+        
+        // 字數計算
+        document.getElementById('textInput').addEventListener('input', function() {
+            const len = this.value.length;
+            const counter = document.getElementById('charCount');
+            counter.textContent = len;
+            counter.parentElement.classList.toggle('warning', len > 1000);
+        });
+        
+        function updateSetting(type) {
+            const val = document.getElementById(type).value;
+            let display = val + 'x';
+            if (type === 'volume') display = Math.round(val * 100) + '%';
+            if (type === 'pitch') display = (val > 0 ? '+' : '') + val;
+            document.getElementById(type + 'Val').textContent = display;
+            localStorage.setItem(type, val);
+        }
+        
+        function selectVoice(el) {
+            document.querySelectorAll('.voice-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedVoice = el.dataset.voice;
+            localStorage.setItem('voice', selectedVoice);
+        }
+        
+        async function convertText() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                alert('請輸入文字');
+                return;
+            }
+            
+            if (text.length > 1000) {
+                alert('文字不能超過 1000 字，目前：' + text.length + ' 字');
+                return;
+            }
+            
+            const btn = document.getElementById('convertBtn');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            btn.disabled = true;
+            progressText.textContent = '轉換中...';
+            
+            // 模擬進度
+            for (let i = 0; i <= 100; i += 20) {
+                progressFill.style.width = i + '%';
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // 建立語音
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = parseFloat(document.getElementById('speed').value);
+            utterance.pitch = 1 + parseFloat(document.getElementById('pitch').value) * 0.5;
+            utterance.volume = parseFloat(document.getElementById('volume').value);
+            
+            // 嘗試使用選擇的聲音
+            const voices = window.speechSynthesis.getVoices();
+            const langMap = {
+                'zh-CN': ['Chinese', 'Mandarin', 'zh'],
+                'zh-TW': ['Chinese', 'Mandarin', 'zh'],
+                'en-US': ['en'],
+                'ja-JP': ['ja'],
+                'ko-KR': ['ko']
+            };
+            
+            const keywords = langMap[selectedVoice] || [selectedVoice];
+            for (const kw of keywords) {
+                const found = voices.find(v => v.lang.toLowerCase().includes(kw.toLowerCase()));
+                if (found) {
+                    utterance.voice = found;
+                    break;
+                }
+            }
+            
+            // 播放
+            utterance.onend = function() {
+                progressFill.style.width = '0%';
+                progressText.textContent = '';
+                btn.disabled = false;
+                document.getElementById('result').classList.add('show');
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
