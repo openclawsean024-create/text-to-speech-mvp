@@ -608,8 +608,13 @@
             document.getElementById('result').classList.add('show');
             document.getElementById('progressFill').style.width = '0%';
             document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value));
-            document.getElementById('downloadBtn').disabled = true;
-            showStatus('✅ 轉換完成！（瀏覽器模式無法下載）', 'success');
+            if (currentEngine === 'browser') {
+                document.getElementById('downloadBtn').disabled = true;
+                document.getElementById('downloadBtn').title = "瀏覽器模式僅支援線上播放，請切換至 OpenAI/ElevenLabs/Kokoro引擎以下載音檔";
+            } else {
+                document.getElementById('downloadBtn').disabled = false;
+            }
+            showStatus('✅ 播放中...（瀏覽器模式僅支援線上播放，建議切換至 OpenAI/ElevenLabs 可下載音檔）', 'success');
         }
 
         function downloadAudio() {
