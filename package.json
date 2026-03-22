@@ -1,0 +1,13 @@
+{
+  "name": "text-to-speech-mvp",
+  "version": "2.0.0",
+  "description": "文字轉語音 - 產品化版本",
+  "main": "api/tts.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "openai": "^4.86.0"
+  },
+  "devDependencies": {}
+}
