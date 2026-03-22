@@ -94,10 +94,15 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🎤 文字轉語音 v2.0</h1>
-            <p>支援多引擎 AI 文字轉語音</p>
-            <span class="version">v2.0 - 多引擎後端 / OpenAI TTS / ElevenLabs</span>
+        <div class="header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div>
+                <h1>🎤 文字轉語音 v2.0</h1>
+                <p>支援多引擎 AI 文字轉語音</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span class="version">v2.0 - 多引擎後端</span>
+                <a href="pricing.html" style="font-size:12px;padding:4px 12px;background:rgba(0,113,227,0.1);color:var(--primary);border-radius:20px;text-decoration:none;font-weight:600;" target="_blank">💰 定價</a>
+            </div>
         </div>
         <div class="card">
             <div style="font-weight:600;font-size:14px;margin-bottom:12px;">📁 上傳檔案</div>
@@ -110,9 +115,11 @@
                     <span class="format-tag">.srt</span>
                     <span class="format-tag">.vtt</span>
                     <span class="format-tag">.lrc</span>
-                    <span class="format-tag">.pdf</span>
-                    <span class="format-tag">.docx</span>
                     <span class="format-tag">.epub</span>
+                    <span class="format-tag">.pdf</span>
+                    <span class="format-tag">.mobi</span>
+                    <span class="format-tag">.azw3</span>
+                    <span class="format-tag">.docx</span>
                 </div>
             </div>
             <div id="fileName" style="margin-top:8px;font-size:13px;color:var(--primary);display:none;"></div>
