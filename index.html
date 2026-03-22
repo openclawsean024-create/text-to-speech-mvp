@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文字轉語音 - v1.3</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --primary: #0071e3; --accent: #34c759; --danger: #ff3b30; --text: #1d1d1f; --text2: #86868b; --bg: #f5f5f7; --card: #fff; --border: #d2d2d7; }
@@ -20,14 +22,14 @@
         textarea { width: 100%; height: 180px; padding: 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; font-family: inherit; resize: none; }
         textarea:focus { outline: none; border-color: var(--primary); }
         .voice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
-        .voice-item { padding: 14px 10px; border: 2px solid var(--border); border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .voice-item { padding: 12px 10px; border: 2px solid var(--border); border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
         .voice-item:hover { border-color: var(--primary); }
         .voice-item.selected { border-color: var(--primary); background: rgba(0,113,227,0.1); }
         .voice-item .name { font-weight: 600; font-size: 14px; }
         .voice-item .lang { font-size: 11px; color: var(--text2); margin-top: 4px; }
-        .preview-btn { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 10px; cursor: pointer; opacity: 0; transition: 0.2s; }
-        .voice-item:hover .preview-btn { opacity: 1; }
-        .preview-btn:hover { background: var(--accent); }
+        .preview-btn { display: inline-block; margin-top: 8px; padding: 4px 10px; background: var(--primary); color: #fff; border: none; border-radius: 20px; font-size: 11px; cursor: pointer; transition: 0.2s; line-height: 1; }
+        .preview-btn:hover { background: #0063c9; }
+        .preview-btn:active { background: #004d99; }
         .speed-presets { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
         .speed-btn { padding: 8px 16px; background: var(--bg); border: 2px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; transition: 0.2s; }
         .speed-btn:hover { border-color: var(--primary); }
@@ -60,6 +62,8 @@
         .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: 0.2s; }
         .upload-zone:hover { border-color: var(--primary); background: rgba(0,113,227,0.05); }
         .upload-zone.dragover { border-color: var(--primary); background: rgba(0,113,227,0.1); }
+        .upload-formats { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 8px; }
+        .format-tag { font-size: 10px; padding: 2px 6px; background: var(--bg); border-radius: 4px; color: var(--text2); }
         .status-msg { padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 12px; display: none; }
         .status-msg.info { background: rgba(0,113,227,0.1); color: var(--primary); }
         .status-msg.error { background: rgba(255,59,48,0.1); color: var(--danger); }
@@ -78,9 +82,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎤 文字轉語音 v1.2</h1>
+            <h1>🎤 文字轉語音 v1.3</h1>
             <p>輸入文字或上傳檔案，轉換為語音</p>
-            <span class="version">v1.3 - 新增格式 / 試聽按鈕 / 錯誤優化</span>
+            <span class="version">v1.3 - 電子書格式支援 / 聲音試聽 / 錯誤訊息改善</span>
         </div>
         <div class="card">
             <div style="font-weight:600;font-size:14px;margin-bottom:12px;">📁 上傳檔案</div>
@@ -88,9 +92,18 @@
                 <input type="file" id="fileInput" accept=".txt,.srt,.vtt,.lrc,.epub,.mobi,.azw3,.pdf,.docx" style="display:none;">
                 <div style="font-size:32px;margin-bottom:8px;">📄</div>
                 <div style="color:var(--text2);">點擊或拖曳檔案至此</div>
-                <div style="font-size:11px;color:var(--text2);margin-top:4px;">支援 .txt, .srt, .vtt, .lrc, .epub, .pdf, .docx</div>
+                <div class="upload-formats">
+                    <span class="format-tag">.txt</span>
+                    <span class="format-tag">.srt</span>
+                    <span class="format-tag">.vtt</span>
+                    <span class="format-tag">.lrc</span>
+                    <span class="format-tag">.pdf</span>
+                    <span class="format-tag">.docx</span>
+                    <span class="format-tag">.epub</span>
+                </div>
             </div>
             <div id="fileName" style="margin-top:8px;font-size:13px;color:var(--primary);display:none;"></div>
+            <div id="fileParseStatus" style="margin-top:4px;font-size:11px;color:var(--text2);display:none;"></div>
         </div>
         <div class="card">
             <div style="font-weight:600;font-size:14px;margin-bottom:12px;">🔊 轉換模式</div>
@@ -112,12 +125,12 @@
         <div class="card">
             <div style="font-weight:600;font-size:14px;margin-bottom:12px;">選擇聲音</div>
             <div class="voice-grid" id="voiceGrid">
-                <div class="voice-item selected" data-voice="zh-CN" data-mode="browser" onclick="selectVoice(this)"><div class="name">曉曉</div><div class="lang">中文-女</div><button class="preview-btn" onclick="previewVoice(event, 'zh-CN')">▶</button></div>
-                <div class="voice-item" data-voice="zh-TW" data-mode="browser" onclick="selectVoice(this)"><div class="name">雲希</div><div class="lang">中文-男</div><button class="preview-btn" onclick="previewVoice(event, 'zh-TW')">▶</button></div>
-                <div class="voice-item" data-voice="en-US" data-mode="browser" onclick="selectVoice(this)"><div class="name">Jenny</div><div class="lang">英文-女</div><button class="preview-btn" onclick="previewVoice(event, 'en-US')">▶</button></div>
-                <div class="voice-item" data-voice="ja-JP" data-mode="browser" onclick="selectVoice(this)"><div class="name">七海</div><div class="lang">日文-女</div><button class="preview-btn" onclick="previewVoice(event, 'ja-JP')">▶</button></div>
-                <div class="voice-item" data-voice="ko-KR" data-mode="browser" onclick="selectVoice(this)"><div class="name">SunHi</div><div class="lang">韓文-女</div><button class="preview-btn" onclick="previewVoice(event, 'ko-KR')">▶</button></div>
-                <div class="voice-item" data-voice="en-US-male" data-mode="browser" onclick="selectVoice(this)"><div class="name">James</div><div class="lang">英文-男</div><button class="preview-btn" onclick="previewVoice(event, 'en-US-male')">▶</button></div>
+                <div class="voice-item selected" data-voice="zh-CN" data-mode="browser" onclick="selectVoice(this)"><div class="name">曉曉</div><div class="lang">中文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('zh-CN')">▶ 試聽</button></div>
+                <div class="voice-item" data-voice="zh-TW" data-mode="browser" onclick="selectVoice(this)"><div class="name">雲希</div><div class="lang">中文-男</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('zh-TW')">▶ 試聽</button></div>
+                <div class="voice-item" data-voice="en-US" data-mode="browser" onclick="selectVoice(this)"><div class="name">Jenny</div><div class="lang">英文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('en-US')">▶ 試聽</button></div>
+                <div class="voice-item" data-voice="ja-JP" data-mode="browser" onclick="selectVoice(this)"><div class="name">七海</div><div class="lang">日文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('ja-JP')">▶ 試聽</button></div>
+                <div class="voice-item" data-voice="ko-KR" data-mode="browser" onclick="selectVoice(this)"><div class="name">SunHi</div><div class="lang">韓文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('ko-KR')">▶ 試聽</button></div>
+                <div class="voice-item" data-voice="en-US-male" data-mode="browser" onclick="selectVoice(this)"><div class="name">James</div><div class="lang">英文-男</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('en-US-male')">▶ 試聽</button></div>
             </div>
         </div>
         <div class="card">
@@ -141,6 +154,11 @@
         <div class="card history"><div class="history-title">轉換歷史<button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">清除</button></div><div class="history-list" id="historyList"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div></div></div>
     </div>
     <script>
+        // Set PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
         const SETTINGS_KEY = 'ttsSettingsV2';
         let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
         let selectedVoice = settings.voice || 'zh-CN';
@@ -149,36 +167,421 @@
         let currentFileName = null;
         let isConverting = false;
         let currentMode = settings.ttsMode || 'browser';
+        let previewingVoice = null;
         document.getElementById('speed').value = settings.speed || 1;
         document.getElementById('pitch').value = settings.pitch || 0;
         document.getElementById('volume').value = settings.volume || 1;
         document.getElementById('apiKeyInput').value = settings.apiKey || '';
         updateSetting('speed'); updateSetting('pitch'); updateSetting('volume'); setMode(currentMode); updateVoiceSelection();
-        function persistSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ voice: selectedVoice, speed: document.getElementById('speed').value, pitch: document.getElementById('pitch').value, volume: document.getElementById('volume').value, apiKey: document.getElementById('apiKeyInput').value.trim(), ttsMode: currentMode })); }
-        function updateVoiceSelection() { document.querySelectorAll('.voice-item').forEach(el => { const isSelected = el.dataset.voice === selectedVoice && el.dataset.mode === currentMode; el.classList.toggle('selected', isSelected); }); persistSettings(); }
-        function splitIntoChunks(text, limit = 500) { const normalized = text.replace(/\s+/g, ' ').trim(); if (!normalized) return []; const parts = []; let current = ''; for (const sentence of normalized.split(/(?<=[。！？!?\.!])\s*/)) { if (!sentence) continue; if ((current + ' ' + sentence).trim().length > limit && current) { parts.push(current.trim()); current = sentence; } else { current += ' ' + sentence; } } if (current.trim()) parts.push(current.trim()); return parts; }
-        function refreshPreview() { const text = document.getElementById('textInput').value.trim(); const chunks = splitIntoChunks(text); document.getElementById('chunkCount').textContent = `分段：${chunks.length}`; const estimatedSeconds = Math.max(1, Math.round(text.length / 6 / parseFloat(document.getElementById('speed').value || 1))); document.getElementById('estimatedDuration').textContent = `預估時長：${estimatedSeconds} 秒`; document.getElementById('chunkPreview').innerHTML = chunks.length ? chunks.slice(0, 6).map((chunk, i) => `<div class="chunk-item">#${i + 1}｜${chunk}</div>`).join('') : '<div style="font-size:12px;color:var(--text2);">尚未產生段落預覽</div>'; }
-        document.getElementById('textInput').addEventListener('input', function() { const len = this.value.length; const counter = document.getElementById('charCount'); counter.textContent = len; counter.parentElement.classList.toggle('warning', len > 5000); refreshPreview(); });
+
+        function persistSettings() {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify({ voice: selectedVoice, speed: document.getElementById('speed').value, pitch: document.getElementById('pitch').value, volume: document.getElementById('volume').value, apiKey: document.getElementById('apiKeyInput').value.trim(), ttsMode: currentMode }));
+        }
+
+        function updateVoiceSelection() {
+            document.querySelectorAll('.voice-item').forEach(el => {
+                const isSelected = el.dataset.voice === selectedVoice && el.dataset.mode === currentMode;
+                el.classList.toggle('selected', isSelected);
+            });
+            persistSettings();
+        }
+
+        function splitIntoChunks(text, limit = 500) {
+            const normalized = text.replace(/\s+/g, ' ').trim();
+            if (!normalized) return [];
+            const parts = [];
+            let current = '';
+            for (const sentence of normalized.split(/(?<=[。！？!?\.!])\s*/)) {
+                if (!sentence) continue;
+                if ((current + ' ' + sentence).trim().length > limit && current) {
+                    parts.push(current.trim());
+                    current = sentence;
+                } else {
+                    current += ' ' + sentence;
+                }
+            }
+            if (current.trim()) parts.push(current.trim());
+            return parts;
+        }
+
+        function refreshPreview() {
+            const text = document.getElementById('textInput').value.trim();
+            const chunks = splitIntoChunks(text);
+            document.getElementById('chunkCount').textContent = `分段：${chunks.length}`;
+            const estimatedSeconds = Math.max(1, Math.round(text.length / 6 / parseFloat(document.getElementById('speed').value || 1)));
+            document.getElementById('estimatedDuration').textContent = `預估時長：${estimatedSeconds} 秒`;
+            document.getElementById('chunkPreview').innerHTML = chunks.length ? chunks.slice(0, 6).map((chunk, i) => `<div class="chunk-item">#${i + 1}｜${chunk}</div>`).join('') : '<div style="font-size:12px;color:var(--text2);">尚未產生段落預覽</div>';
+        }
+
+        document.getElementById('textInput').addEventListener('input', function() {
+            const len = this.value.length;
+            const counter = document.getElementById('charCount');
+            counter.textContent = len;
+            counter.parentElement.classList.toggle('warning', len > 5000);
+            refreshPreview();
+        });
         document.getElementById('apiKeyInput').addEventListener('input', persistSettings);
-        function updateSetting(type) { const val = document.getElementById(type).value; let display = val + 'x'; if (type === 'volume') display = Math.round(val * 100) + '%'; if (type === 'pitch') display = (val > 0 ? '+' : '') + val; document.getElementById(type + 'Val').textContent = display; persistSettings(); refreshPreview(); }
-        function selectVoice(el) { document.querySelectorAll('.voice-item').forEach(i => i.classList.remove('selected')); el.classList.add('selected'); selectedVoice = el.dataset.voice; persistSettings(); }
-        function previewVoice(event, voice) { event.stopPropagation(); const testText = { 'zh-CN': '你好，這是測試語音', 'zh-TW': '你好，這是測試語音', 'en-US': 'Hello, this is a test', 'ja-JP': 'こんにちは、これはテストです', 'ko-KR': '안녕하세요, 테스트 음성입니다', 'en-US-male': 'Hello, this is a test' }[voice] || 'Hello'; const utterance = new SpeechSynthesisUtterance(testText); utterance.rate = 1; const voices = window.speechSynthesis.getVoices(); const voiceObj = voices.find(v => v.lang.includes(voice.replace('-male',''))) || voices[0]; if (voiceObj) utterance.voice = voiceObj; window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterance); showStatus('🔊 試聽中...', 'info'); }
-        function setSpeed(val) { document.getElementById('speed').value = val; updateSetting('speed'); document.querySelectorAll('.speed-btn').forEach(btn => { btn.classList.toggle('active', parseFloat(btn.textContent) === val); }); }
-        function setMode(mode) { currentMode = mode; document.getElementById('modeBrowser').classList.toggle('active', mode === 'browser'); document.getElementById('modeAPI').classList.toggle('active', mode === 'api'); document.getElementById('apiKeySection').style.display = mode === 'api' ? 'block' : 'none'; document.querySelectorAll('.voice-item').forEach(el => { el.style.display = (el.dataset.mode === mode || !el.dataset.mode) ? 'block' : 'none'; }); if (mode === 'browser' && !document.querySelector(`.voice-item[data-voice="${selectedVoice}"]`)) selectedVoice = 'zh-CN'; updateVoiceSelection(); showStatus(mode === 'browser' ? '🌐 使用瀏覽器內建語音（免費）' : '🤖 使用 AI API（需要 Key）', 'info'); persistSettings(); }
-        const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput'); uploadZone.addEventListener('click', () => fileInput.click()); uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); }); uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover')); uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); const file = e.dataTransfer.files[0]; if (file) handleFile(file); }); fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) handleFile(file); });
-        function handleFile(file) { const validTypes = ['.txt', '.srt', '.vtt', '.lrc', '.epub', '.mobi', '.azw3', '.pdf', '.docx']; const ext = '.' + file.name.split('.').pop().toLowerCase(); if (!validTypes.includes(ext)) { showStatus('不支援的檔案格式，請上傳 .txt, .srt, .vtt, .lrc, .epub, .pdf, .docx 檔案', 'error'); return; } const reader = new FileReader(); reader.onload = (e) => { let text = e.target.result; if (ext === '.srt' || ext === '.vtt') { text = text.replace(/\d+\n\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}/g, ''); text = text.replace(/\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}/g, ''); } if (ext === '.lrc') text = text.replace(/\[\d{2}:\d{2}\.\d{2}\]/g, ''); if (ext === '.epub' || ext === '.mobi' || ext === '.azw3') { text = text.replace(/<[^>]+>/g, ''); text = text.replace(/\s+/g, ' ').trim(); } text = text.trim(); if (text.length > 5000) { text = text.substring(0, 5000); showStatus('檔案內容已截斷至 5000 字', 'info'); } document.getElementById('textInput').value = text; document.getElementById('charCount').textContent = text.length; document.getElementById('fileName').textContent = '📄 ' + file.name; document.getElementById('fileName').style.display = 'block'; currentFileName = file.name; refreshPreview(); }; reader.readAsText(file); }
-        function showStatus(msg, type) { const el = document.getElementById('statusMsg'); el.textContent = msg; el.className = 'status-msg ' + type + ' show'; setTimeout(() => el.classList.remove('show'), 5000); }
-        async function convertText() { const text = document.getElementById('textInput').value.trim(); if (!text) { showStatus('請輸入文字或上傳檔案', 'error'); return; } if (text.length > 5000) { showStatus('文字不能超過 5000 字，目前：' + text.length + ' 字', 'error'); return; } if (isConverting) return; isConverting = true; document.getElementById('convertBtn').disabled = true; document.getElementById('convertBtn').textContent = '⏳ 轉換中...'; addToHistory(text); try { if (currentMode === 'api') await convertWithAPI(text); else await convertWithBrowser(text); } catch (error) { console.error('TTS Error:', error); showStatus('轉換失敗: ' + error.message, 'error'); } isConverting = false; document.getElementById('convertBtn').disabled = false; document.getElementById('convertBtn').textContent = '🔊 開始轉換'; }
-        async function convertWithAPI(text) { const apiKey = document.getElementById('apiKeyInput').value.trim(); if (!apiKey) { showStatus('請輸入 API Key', 'error'); throw new Error('需要 API Key'); } persistSettings(); try { const response = await fetch('https://api.inference.sh/v1/tts/kokoro', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey }, body: JSON.stringify({ voice: selectedVoice, text: text, speed: parseFloat(document.getElementById('speed').value) }) }); if (!response.ok) { const errorData = await response.json().catch(() => ({})); const errorMsg = errorData.error?.message || errorData.message || `HTTP ${response.status}`; throw new Error('API 錯誤: ' + errorMsg); } const audioBlob = await response.blob(); currentAudioBlob = audioBlob; const audioUrl = URL.createObjectURL(audioBlob); const audio = document.getElementById('audioPlayer'); audio.src = audioUrl; audio.addEventListener('loadedmetadata', () => { document.getElementById('totalTime').textContent = formatTime(audio.duration); }); audio.addEventListener('timeupdate', () => { const progress = (audio.currentTime / audio.duration) * 100; document.getElementById('progressFill').style.width = progress + '%'; document.getElementById('currentTime').textContent = formatTime(audio.currentTime); }); audio.addEventListener('ended', () => { document.getElementById('progressFill').style.width = '100%'; }); document.getElementById('result').classList.add('show'); document.getElementById('progressFill').style.width = '0%'; document.getElementById('downloadBtn').disabled = false; showStatus('✅ 轉換完成！可下載 MP3', 'success'); }
+
+        function updateSetting(type) {
+            const val = document.getElementById(type).value;
+            let display = val + 'x';
+            if (type === 'volume') display = Math.round(val * 100) + '%';
+            if (type === 'pitch') display = (val > 0 ? '+' : '') + val;
+            document.getElementById(type + 'Val').textContent = display;
+            persistSettings();
+            refreshPreview();
+        }
+
+        function selectVoice(el) {
+            document.querySelectorAll('.voice-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedVoice = el.dataset.voice;
+            persistSettings();
+        }
+
+        function setSpeed(val) {
+            document.getElementById('speed').value = val;
+            updateSetting('speed');
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.textContent) === val);
+            });
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeBrowser').classList.toggle('active', mode === 'browser');
+            document.getElementById('modeAPI').classList.toggle('active', mode === 'api');
+            document.getElementById('apiKeySection').style.display = mode === 'api' ? 'block' : 'none';
+            document.querySelectorAll('.voice-item').forEach(el => {
+                el.style.display = (el.dataset.mode === mode || !el.dataset.mode) ? 'block' : 'none';
+            });
+            if (mode === 'browser' && !document.querySelector(`.voice-item[data-voice="${selectedVoice}"]`)) selectedVoice = 'zh-CN';
+            updateVoiceSelection();
+            showStatus(mode === 'browser' ? '🌐 使用瀏覽器內建語音（免費）' : '🤖 使用 AI API（需要 Key）', 'info');
+            persistSettings();
+        }
+
+        // ── 聲音試聽 ──────────────────────────────────────
+        function previewVoice(voiceCode) {
+            if (previewingVoice) {
+                window.speechSynthesis.cancel();
+            }
+            const previewTexts = {
+                'zh-CN': '您好，這是曉曉的聲音預覽。',
+                'zh-TW': '您好，這是雲希的聲音預覽。',
+                'en-US': 'Hello, this is a voice preview.',
+                'ja-JP': 'こんにちは、七海の聲です。',
+                'ko-KR': '안녕하세요, 선희 목소리 미리보기입니다.',
+                'en-US-male': 'Hello, this is a voice preview.'
+            };
+            const text = previewTexts[voiceCode] || '您好，這是聲音預覽。';
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            const voices = window.speechSynthesis.getVoices();
+            const voiceObj = voices.find(v => v.lang.includes(voiceCode.replace('-male','')));
+            if (voiceObj) utterance.voice = voiceObj;
+            utterance.onend = function() { previewingVoice = null; };
+            previewingVoice = voiceCode;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); const file = e.dataTransfer.files[0]; if (file) handleFile(file); });
+        fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) handleFile(file); });
+
+        // ── 檔案處理（支援多种格式）───
+        async function handleFile(file) {
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            const statusEl = document.getElementById('fileParseStatus');
+            statusEl.style.display = 'none';
+
+            try {
+                let text = '';
+                if (ext === '.txt' || ext === '.srt' || ext === '.vtt' || ext === '.lrc') {
+                    text = await readFileAsText(file);
+                    if (ext === '.srt' || ext === '.vtt') {
+                        text = text.replace(/\d+\n\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}/g, '');
+                        text = text.replace(/\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}/g, '');
+                    }
+                    if (ext === '.lrc') text = text.replace(/\[\d{2}:\d{2}\.\d{2}\]/g, '');
+                } else if (ext === '.pdf') {
+                    statusEl.textContent = '⏳ 正在解析 PDF...';
+                    statusEl.style.display = 'block';
+                    text = await extractPDFText(file);
+                    statusEl.style.display = 'none';
+                } else if (ext === '.docx') {
+                    statusEl.textContent = '⏳ 正在解析 DOCX...';
+                    statusEl.style.display = 'block';
+                    text = await extractDocxText(file);
+                    statusEl.style.display = 'none';
+                } else if (ext === '.epub') {
+                    statusEl.textContent = '⏳ 正在解析 EPUB（支援部分格式）...';
+                    statusEl.style.display = 'block';
+                    text = await extractEpubText(file);
+                    statusEl.style.display = 'none';
+                } else if (ext === '.mobi' || ext === '.azw3') {
+                    showStatus(`⚠️ ${ext} 格式需要後端處理。請轉換為 .epub、.pdf 或 .docx 再上傳。`, 'info');
+                    return;
+                } else {
+                    showStatus('不支援的檔案格式，請上傳 .txt, .srt, .vtt, .lrc, .pdf, .docx, .epub', 'error');
+                    return;
+                }
+
+                text = text.trim();
+                if (text.length > 5000) {
+                    text = text.substring(0, 5000);
+                    showStatus('檔案內容已截斷至 5000 字', 'info');
+                }
+                document.getElementById('textInput').value = text;
+                document.getElementById('charCount').textContent = text.length;
+                const nameEl = document.getElementById('fileName');
+                nameEl.textContent = '📄 ' + file.name + '（' + text.length + ' 字）';
+                nameEl.style.display = 'block';
+                currentFileName = file.name;
+                refreshPreview();
+            } catch (err) {
+                statusEl.style.display = 'none';
+                showStatus('檔案讀取失敗：' + err.message, 'error');
+            }
+        }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('檔案讀取錯誤'));
+                reader.readAsText(file);
+            });
+        }
+
+        async function extractPDFText(file) {
+            if (typeof pdfjsLib === 'undefined') throw new Error('PDF.js 尚未載入');
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const pageText = content.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+            return fullText;
+        }
+
+        async function extractDocxText(file) {
+            if (typeof mammoth === 'undefined') throw new Error('mammoth.js 尚未載入');
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value;
+        }
+
+        async function extractEpubText(file) {
+            // EPUB 是 ZIP 格式，尝试直接读取纯文本内容
+            const arrayBuffer = await file.arrayBuffer();
+            try {
+                const { default: JSZip } = await import('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                let text = '';
+                const htmlFiles = Object.keys(zip.files).filter(n => n.endsWith('.xhtml') || n.endsWith('.html') || n.endsWith('.htm'));
+                for (const filename of htmlFiles) {
+                    const content = await zip.files[filename].async('string');
+                    // 簡單去除 HTML 標籤
+                    text += content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() + '\n';
+                }
+                if (!text.trim()) throw new Error('無內容');
+                return text;
+            } catch(e) {
+                throw new Error('EPUB 解析失敗（可能格式不相容）。建議轉換為 .docx 或 .pdf 再試。');
+            }
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = msg;
+            el.className = 'status-msg ' + type + ' show';
+            setTimeout(() => el.classList.remove('show'), 6000);
+        }
+
+        async function convertText() {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) { showStatus('請輸入文字或上傳檔案', 'error'); return; }
+            if (text.length > 5000) { showStatus('文字不能超過 5000 字，目前：' + text.length + ' 字', 'error'); return; }
+            if (isConverting) return;
+            isConverting = true;
+            document.getElementById('convertBtn').disabled = true;
+            document.getElementById('convertBtn').textContent = '⏳ 轉換中...';
+            addToHistory(text);
+            try {
+                if (currentMode === 'api') await convertWithAPI(text);
+                else await convertWithBrowser(text);
+            } catch (error) {
+                console.error('TTS Error:', error);
+                showStatus('轉換失敗：' + error.message, 'error');
+            }
+            isConverting = false;
+            document.getElementById('convertBtn').disabled = false;
+            document.getElementById('convertBtn').textContent = '🔊 開始轉換';
+        }
+
+        async function convertWithAPI(text) {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (!apiKey) { showStatus('請輸入 API Key', 'error'); throw new Error('需要 API Key'); }
+            persistSettings();
+            let response;
+            try {
+                response = await fetch('https://api.inference.sh/v1/tts/kokoro', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        voice: selectedVoice,
+                        text: text,
+                        speed: parseFloat(document.getElementById('speed').value)
+                    })
+                });
+            } catch (networkErr) {
+                throw new Error('網路連線失敗，請檢查網路或 API 位址是否正確');
+            }
+
+            if (!response.ok) {
+                let errorDetail = 'API 請求失敗';
+                const status = response.status;
+                if (status === 401 || status === 403) {
+                    errorDetail = 'API Key 無效或已過期，請重新取得';
+                } else if (status === 429) {
+                    errorDetail = 'API 請求次數超限，請稍後再試';
+                } else if (status >= 500) {
+                    errorDetail = 'API 伺服器錯誤，請稍後再試';
+                }
+                // 嘗試從回應 body 取得詳細錯誤
+                try {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const errData = await response.json();
+                        if (errData && errData.error) {
+                            errorDetail = typeof errData.error === 'string'
+                                ? errData.error
+                                : (errData.error.message || errData.error.code || errorDetail);
+                        } else if (errData && errData.message) {
+                            errorDetail = errData.message;
+                        }
+                    } else {
+                        const textBody = await response.text();
+                        if (textBody && textBody.trim()) {
+                            errorDetail += '：' + textBody.trim().substring(0, 200);
+                        }
+                    }
+                } catch (_) {}
+                throw new Error(errorDetail);
+            }
+
+            const audioBlob = await response.blob();
+            currentAudioBlob = audioBlob;
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = document.getElementById('audioPlayer');
+            audio.src = audioUrl;
+            audio.addEventListener('loadedmetadata', () => {
+                document.getElementById('totalTime').textContent = formatTime(audio.duration);
+            });
+            audio.addEventListener('timeupdate', () => {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('currentTime').textContent = formatTime(audio.currentTime);
+            });
+            audio.addEventListener('ended', () => {
+                document.getElementById('progressFill').style.width = '100%';
+            });
+            document.getElementById('result').classList.add('show');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('downloadBtn').disabled = false;
+            showStatus('✅ 轉換完成！可下載音頻', 'success');
+        }
+
         function loadVoices() { window.availableVoices = window.speechSynthesis.getVoices(); }
-        if (window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadVoices; loadVoices();
-        async function convertWithBrowser(text) { const utterance = new SpeechSynthesisUtterance(text); utterance.rate = parseFloat(document.getElementById('speed').value); utterance.pitch = 1 + parseFloat(document.getElementById('pitch').value) * 0.5; utterance.volume = parseFloat(document.getElementById('volume').value); const voices = window.speechSynthesis.getVoices(); const selectedVoiceObj = voices.find(v => v.lang.includes(selectedVoice.replace('-male',''))) || voices[0]; if (selectedVoiceObj) utterance.voice = selectedVoiceObj; utterance.onboundary = function(event) { if (event.name === 'word') { const progress = (event.charIndex / text.length) * 100; document.getElementById('progressFill').style.width = Math.min(progress, 95) + '%'; } }; utterance.onend = function() { document.getElementById('progressFill').style.width = '100%'; document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value)); }; window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterance); document.getElementById('result').classList.add('show'); document.getElementById('progressFill').style.width = '0%'; document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value)); document.getElementById('downloadBtn').disabled = true; showStatus('✅ 轉換完成！（瀏覽器模式無法下載）', 'success'); }
-        function downloadAudio() { if (!currentAudioBlob) { showStatus('沒有可下載的音頻', 'error'); return; } const ext = currentAudioBlob.type.includes('mpeg') || currentAudioBlob.type.includes('mp3') ? 'mp3' : 'wav'; const url = URL.createObjectURL(currentAudioBlob); const a = document.createElement('a'); a.href = url; a.download = (currentFileName ? currentFileName.replace(/\.[^.]+$/, '') : 'tts-' + Date.now()) + '.' + ext; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showStatus('⬇️ 下載開始！', 'success'); }
-        function formatTime(seconds) { const mins = Math.floor(seconds / 60); const secs = Math.floor(seconds % 60); return mins + ':' + (secs < 10 ? '0' : '') + secs; }
-        function addToHistory(text) { const item = { text: text.substring(0, 50) + (text.length > 50 ? '...' : ''), fullText: text, time: new Date().toLocaleString('zh-TW'), mode: currentMode, voice: selectedVoice }; history.unshift(item); if (history.length > 10) history.pop(); localStorage.setItem('ttsHistory', JSON.stringify(history)); renderHistory(); }
-        function renderHistory() { const list = document.getElementById('historyList'); if (history.length === 0) { list.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div>'; return; } list.innerHTML = history.map((item, idx) => `<div class="history-item" onclick="loadHistory(${idx})">${item.text}<div class="time">${item.time} ｜ ${item.mode} ｜ ${item.voice}</div></div>`).join(''); }
-        function loadHistory(idx) { const item = history[idx]; document.getElementById('textInput').value = item.fullText; document.getElementById('charCount').textContent = item.fullText.length; refreshPreview(); }
-        function clearHistory() { if (confirm('確定清除所有歷史記錄？')) { history = []; localStorage.removeItem('ttsHistory'); renderHistory(); } }
+        if (window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+
+        async function convertWithBrowser(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = parseFloat(document.getElementById('speed').value);
+            utterance.pitch = 1 + parseFloat(document.getElementById('pitch').value) * 0.5;
+            utterance.volume = parseFloat(document.getElementById('volume').value);
+            const voices = window.speechSynthesis.getVoices();
+            const selectedVoiceObj = voices.find(v => v.lang.includes(selectedVoice.replace('-male',''))) || voices[0];
+            if (selectedVoiceObj) utterance.voice = selectedVoiceObj;
+            utterance.onboundary = function(event) {
+                if (event.name === 'word') {
+                    const progress = (event.charIndex / text.length) * 100;
+                    document.getElementById('progressFill').style.width = Math.min(progress, 95) + '%';
+                }
+            };
+            utterance.onend = function() {
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value));
+            };
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+            document.getElementById('result').classList.add('show');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value));
+            document.getElementById('downloadBtn').disabled = true;
+            showStatus('✅ 轉換完成！（瀏覽器模式無法下載）', 'success');
+        }
+
+        function downloadAudio() {
+            if (!currentAudioBlob) { showStatus('沒有可下載的音頻', 'error'); return; }
+            const ext = currentAudioBlob.type.includes('mpeg') || currentAudioBlob.type.includes('mp3') ? 'mp3' : 'wav';
+            const url = URL.createObjectURL(currentAudioBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (currentFileName ? currentFileName.replace(/\.[^.]+$/, '') : 'tts-' + Date.now()) + '.' + ext;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus('⬇️ 下載開始！', 'success');
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+
+        function addToHistory(text) {
+            const item = { text: text.substring(0, 50) + (text.length > 50 ? '...' : ''), fullText: text, time: new Date().toLocaleString('zh-TW'), mode: currentMode, voice: selectedVoice };
+            history.unshift(item);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('ttsHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) { list.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div>'; return; }
+            list.innerHTML = history.map((item, idx) => `<div class="history-item" onclick="loadHistory(${idx})">${item.text}<div class="time">${item.time} ｜ ${item.mode} ｜ ${item.voice}</div></div>`).join('');
+        }
+
+        function loadHistory(idx) {
+            const item = history[idx];
+            document.getElementById('textInput').value = item.fullText;
+            document.getElementById('charCount').textContent = item.fullText.length;
+            refreshPreview();
+        }
+
+        function clearHistory() {
+            if (confirm('確定清除所有歷史記錄？')) { history = []; localStorage.removeItem('ttsHistory'); renderHistory(); }
+        }
+
         renderHistory(); refreshPreview();
     </script>
 </body>
