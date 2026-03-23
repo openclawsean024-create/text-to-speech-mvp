@@ -499,6 +499,17 @@
             if (!text) { showStatus('請輸入文字或上傳檔案', 'error'); return; }
             if (text.length > 5000) { showStatus('文字不能超過 5000 字，目前：' + text.length + ' 字', 'error'); return; }
             if (isConverting) return;
+            // Reset result state before new conversion
+            currentAudioBlob = null;
+            document.getElementById('result').classList.remove('show');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('currentTime').textContent = '0:00';
+            document.getElementById('totalTime').textContent = '--:--';
+            const dlBtn = document.getElementById('downloadBtn');
+            dlBtn.disabled = true;
+            dlBtn.style.opacity = '';
+            dlBtn.style.cursor = '';
+            dlBtn.title = '';
             isConverting = true;
             document.getElementById('convertBtn').disabled = true;
             document.getElementById('convertBtn').textContent = '⏳ 轉換中...';
@@ -581,18 +592,59 @@
             showStatus(`✅ 轉換完成！(${currentEngine} 引擎)`, 'success');
         }
 
-        function loadVoices() { window.availableVoices = window.speechSynthesis.getVoices(); }
+        function loadVoices() { 
+            window.availableVoices = window.speechSynthesis.getVoices(); 
+            // Update voice grid to show available browser voices
+            updateBrowserVoicesDisplay();
+        }
         if (window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices();
 
+        function updateBrowserVoicesDisplay() {
+            const voices = window.speechSynthesis.getVoices() || [];
+            console.log('Browser voices loaded:', voices.length);
+        }
+
+        // Wait for voices to be ready before TTS
+        function waitForVoices(timeoutMs = 5000) {
+            return new Promise((resolve) => {
+                let voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) return resolve(voices);
+                
+                const onvoiceschanged = () => {
+                    window.speechSynthesis.onvoiceschanged = null;
+                    resolve(window.speechSynthesis.getVoices());
+                };
+                
+                window.speechSynthesis.onvoiceschanged = onvoiceschanged;
+                
+                // Timeout fallback
+                setTimeout(() => {
+                    window.speechSynthesis.onvoiceschanged = null;
+                    resolve(window.speechSynthesis.getVoices() || []);
+                }, timeoutMs);
+            });
+        }
+
         async function convertWithBrowser(text) {
+            // Wait for voices to be ready
+            const voices = await waitForVoices();
+            
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = parseFloat(document.getElementById('speed').value);
             utterance.pitch = 1 + parseFloat(document.getElementById('pitch').value) * 0.5;
             utterance.volume = parseFloat(document.getElementById('volume').value);
-            const voices = window.speechSynthesis.getVoices();
-            const selectedVoiceObj = voices.find(v => v.lang.includes(selectedVoice.replace('-male',''))) || voices[0];
-            if (selectedVoiceObj) utterance.voice = selectedVoiceObj;
+            
+            // Try to find matching voice, fallback to first available
+            const targetLang = selectedVoice.replace('-male','');
+            let selectedVoiceObj = voices.find(v => v.lang.includes(targetLang.split('-')[0]));
+            if (!selectedVoiceObj) selectedVoiceObj = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]));
+            if (!selectedVoiceObj) selectedVoiceObj = voices[0];
+            
+            if (selectedVoiceObj) {
+                utterance.voice = selectedVoiceObj;
+                console.log('Using browser voice:', selectedVoiceObj.name, selectedVoiceObj.lang);
+            }
             utterance.onboundary = function(event) {
                 if (event.name === 'word') {
                     const progress = (event.charIndex / text.length) * 100;
@@ -608,13 +660,17 @@
             document.getElementById('result').classList.add('show');
             document.getElementById('progressFill').style.width = '0%';
             document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value));
-            if (currentEngine === 'browser') {
+            if (currentMode === 'browser') {
                 document.getElementById('downloadBtn').disabled = true;
-                document.getElementById('downloadBtn').title = "瀏覽器模式僅支援線上播放，請切換至 OpenAI/ElevenLabs/Kokoro引擎以下載音檔";
+                document.getElementById('downloadBtn').title = "瀏覽器模式僅支援線上播放，切換至 OpenAI/ElevenLabs/Kokoro 引擎可下載音檔";
+                document.getElementById('downloadBtn').style.opacity = '0.5';
+                document.getElementById('downloadBtn').style.cursor = 'not-allowed';
             } else {
                 document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('downloadBtn').style.opacity = '1';
+                document.getElementById('downloadBtn').style.cursor = 'pointer';
             }
-            showStatus('✅ 播放中...（瀏覽器模式僅支援線上播放，建議切換至 OpenAI/ElevenLabs 可下載音檔）', 'success');
+            showStatus('✅ 播放中（🌐 瀏覽器模式，支援線上朗讀）。切換至 OpenAI/ElevenLabs 可下載音檔', 'success');
         }
 
         function downloadAudio() {
