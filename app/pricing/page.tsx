@@ -1,7 +1,6 @@
-export const dynamic = 'force-dynamic'
+'use client'
 
 import Link from 'next/link'
-import { SignInButton, SignOutButton, SignedIn, SignedOut } from '@clerk/nextjs'
 
 export default function PricingPage() {
   return (
@@ -13,19 +12,13 @@ export default function PricingPage() {
             🎤 文字轉語音 v2.0
           </Link>
           <div className="flex items-center gap-3">
-            <SignedIn>
+            
               <Link href="/dashboard" className="text-xs px-3 py-1.5 bg-purple-50 text-purple-600 rounded-full font-semibold">
                 📊 控制台
               </Link>
-              <SignOutButton>
-                <button className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full">登出</button>
-              </SignOutButton>
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="text-xs px-4 py-1.5 bg-blue-600 text-white rounded-full font-semibold">登入</button>
-              </SignInButton>
-            </SignedOut>
+              <button className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full" onClick={() => alert("請設定 Clerk API Key")}>登出</button>
+            
+            
             <Link href="/" className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full">← 開始使用</Link>
           </div>
         </div>
@@ -97,18 +90,12 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <SignedIn>
+            
               <Link href="/dashboard" className="mt-6 block w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-xl font-semibold transition-colors">
                 選擇 Starter
               </Link>
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="mt-6 w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors">
-                  選擇 Starter
-                </button>
-              </SignInButton>
-            </SignedOut>
+            
+            
           </div>
 
           {/* Pro */}
@@ -140,18 +127,12 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <SignedIn>
+            
               <Link href="/dashboard" className="mt-6 block w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-xl font-semibold transition-colors">
                 選擇 Pro
               </Link>
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <button className="mt-6 w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors">
-                  選擇 Pro
-                </button>
-              </SignInButton>
-            </SignedOut>
+            
+            
           </div>
         </div>
 
