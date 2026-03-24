@@ -56,9 +56,18 @@
         .history { margin-top: 20px; }
         .history-title { font-weight: 600; font-size: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         .history-list { max-height: 200px; overflow-y: auto; }
-        .history-item { padding: 12px; background: var(--bg); border-radius: 10px; margin-bottom: 8px; font-size: 13px; cursor: pointer; transition: 0.2s; }
-        .history-item:hover { background: rgba(0,113,227,0.1); }
+        .history-item { padding: 12px; background: var(--bg); border-radius: 10px; margin-bottom: 8px; font-size: 13px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .history-item:hover { background: rgba(0,113,227,0.1); border-color: var(--primary); }
         .history-item .time { font-size: 11px; color: var(--text2); margin-top: 4px; }
+        .history-item .engine-badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-top: 4px; font-weight: 600; }
+        .engine-badge.api { background: rgba(0,113,227,0.15); color: var(--primary); }
+        .engine-badge.browser { background: rgba(52,199,89,0.15); color: var(--accent); }
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; flex-direction: column; }
+        .loading-overlay.show { display: flex; }
+        .loading-spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 16px; font-size: 15px; color: var(--text); font-weight: 500; }
+        .loading-sub { margin-top: 6px; font-size: 12px; color: var(--text2); }
         .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: 0.2s; }
         .upload-zone:hover { border-color: var(--primary); background: rgba(0,113,227,0.05); }
         .upload-zone.dragover { border-color: var(--primary); background: rgba(0,113,227,0.1); }
@@ -204,6 +213,11 @@
         <div class="status-msg info" id="statusMsg"></div>
         <div class="result" id="result"><div class="card"><div class="progress-container"><div style="font-weight:600;margin-bottom:8px;">🎉 轉換完成！</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="progress-time"><span id="currentTime">0:00</span><span id="totalTime">--:--</span></div></div><div class="audio-player"><audio id="audioPlayer" controls></audio></div><button class="download-btn" id="downloadBtn" onclick="downloadAudio()" disabled>⬇️ 下載音頻</button></div></div>
         <div class="card history"><div class="history-title">轉換歷史<button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">清除</button></div><div class="history-list" id="historyList"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div></div></div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">⏳ 正在轉換...</div>
+        <div class="loading-sub" id="loadingSub">使用 <span id="loadingEngine">—</span> 引擎</div>
     </div>
     <script>
         if (typeof pdfjsLib !== 'undefined') {
@@ -513,17 +527,34 @@
             isConverting = true;
             document.getElementById('convertBtn').disabled = true;
             document.getElementById('convertBtn').textContent = '⏳ 轉換中...';
+            document.getElementById('loadingOverlay').classList.add('show');
+            document.getElementById('loadingEngine').textContent = currentMode === 'browser' ? 'Web Speech API' : (currentEngine.charAt(0).toUpperCase() + currentEngine.slice(1));
             addToHistory(text);
             try {
                 if (currentMode === 'api') await convertWithAPI(text);
                 else await convertWithBrowser(text);
             } catch (error) {
                 console.error('TTS Error:', error);
-                showStatus('轉換失敗：' + error.message, 'error');
+                // Provide helpful, user-friendly error messages
+                let userMsg = error.message || '未知錯誤';
+                if (userMsg.includes('401') || userMsg.includes('Invalid API key')) {
+                    userMsg = 'API Key 無效，請檢查 Key 是否正確';
+                } else if (userMsg.includes('429')) {
+                    userMsg = '速率限制，請稍後再試（建議使用其他引擎）';
+                } else if (userMsg.includes('quota') || userMsg.includes('insufficient')) {
+                    userMsg = 'API 配額已用盡，請明天再試或更換方案';
+                } else if (userMsg.includes('network') || userMsg.includes('fetch') || userMsg.includes('Failed to')) {
+                    userMsg = '網路連線失敗，請確認後端服務正常運行';
+                } else if (userMsg.includes('500') || userMsg.includes('internal')) {
+                    userMsg = '後端伺服器錯誤，請稍後再試';
+                }
+                showStatus('❌ 轉換失敗：' + userMsg, 'error');
+                document.getElementById('loadingOverlay').classList.remove('show');
             }
             isConverting = false;
             document.getElementById('convertBtn').disabled = false;
             document.getElementById('convertBtn').textContent = '🔊 開始轉換';
+            document.getElementById('loadingOverlay').classList.remove('show');
         }
 
         async function convertWithAPI(text) {
@@ -588,7 +619,11 @@
             });
             document.getElementById('result').classList.add('show');
             document.getElementById('progressFill').style.width = '0%';
-            document.getElementById('downloadBtn').disabled = false;
+            // Re-enable download only for API mode (browser mode has no blob)
+            if (currentMode === 'api') {
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('downloadBtn').title = '';
+            }
             showStatus(`✅ 轉換完成！(${currentEngine} 引擎)`, 'success');
         }
 
@@ -660,17 +695,12 @@
             document.getElementById('result').classList.add('show');
             document.getElementById('progressFill').style.width = '0%';
             document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value));
-            if (currentMode === 'browser') {
-                document.getElementById('downloadBtn').disabled = true;
-                document.getElementById('downloadBtn').title = "瀏覽器模式僅支援線上播放，切換至 OpenAI/ElevenLabs/Kokoro 引擎可下載音檔";
-                document.getElementById('downloadBtn').style.opacity = '0.5';
-                document.getElementById('downloadBtn').style.cursor = 'not-allowed';
-            } else {
-                document.getElementById('downloadBtn').disabled = false;
-                document.getElementById('downloadBtn').style.opacity = '1';
-                document.getElementById('downloadBtn').style.cursor = 'pointer';
-            }
-            showStatus('✅ 播放中（🌐 瀏覽器模式，支援線上朗讀）。切換至 OpenAI/ElevenLabs 可下載音檔', 'success');
+            // Browser mode does not produce a downloadable blob — always disable
+            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('downloadBtn').title = '瀏覽器模式僅支援線上播放，請切換至 OpenAI / ElevenLabs / Kokoro 引擎以下載音檔';
+            document.getElementById('downloadBtn').style.opacity = '0.5';
+            document.getElementById('downloadBtn').style.cursor = 'not-allowed';
+            showStatus('✅ 播放中...（瀏覽器模式僅支援線上播放，建議切換至 OpenAI/ElevenLabs 可下載音檔）', 'success');
         }
 
         function downloadAudio() {
@@ -704,14 +734,36 @@
         function renderHistory() {
             const list = document.getElementById('historyList');
             if (history.length === 0) { list.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div>'; return; }
-            list.innerHTML = history.map((item, idx) => `<div class="history-item" onclick="loadHistory(${idx})">${item.text}<div class="time">${item.time} ｜ ${item.engine || item.mode} ｜ ${item.voice}</div></div>`).join('');
+            list.innerHTML = history.map((item, idx) => {
+                const isApi = item.mode === 'api';
+                const badge = isApi
+                    ? `<span class="engine-badge api">${(item.engine || 'api').toUpperCase()}</span>`
+                    : `<span class="engine-badge browser">瀏覽器</span>`;
+                return `<div class="history-item" onclick="loadHistory(${idx})">
+                    ${item.text}
+                    <div class="time">${item.time} ｜ ${item.voice}</div>
+                    ${badge}
+                </div>`;
+            }).join('');
         }
 
         function loadHistory(idx) {
             const item = history[idx];
             document.getElementById('textInput').value = item.fullText;
             document.getElementById('charCount').textContent = item.fullText.length;
+            // Restore mode and engine if stored
+            if (item.mode) setMode(item.mode);
+            if (item.mode === 'api' && item.engine) {
+                setEngine(item.engine);
+                // Restore voice selection for API mode
+                const voiceEl = document.querySelector(`.voice-item[data-voice="${item.voice}"]`);
+                if (voiceEl) selectVoice(voiceEl);
+            } else if (item.mode === 'browser' && item.voice) {
+                const voiceEl = document.querySelector(`.voice-item[data-voice="${item.voice}"]`);
+                if (voiceEl) selectVoice(voiceEl);
+            }
             refreshPreview();
+            showStatus(`已載入歷史記錄（${item.time}）`, 'info');
         }
 
         function clearHistory() {

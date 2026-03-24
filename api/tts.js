@@ -26,14 +26,40 @@ const { rateLimit } = require('../lib/rate-limiter');
 const ALLOWED_ENGINES = ['openai', 'elevenlabs', 'kokoro'];
 
 // Map frontend voice codes to engine-specific voices
+// Kokoro voices: af_* = American female, bf_* = British female, am_* = American male, bm_* = British male
+// For Chinese: zh-CN-female (female), zh-CN-male (male), or explicit voice packs like af_zhang
 const VOICE_MAP = {
-  // Browser/Web Speech codes → engine defaults
-  'zh-CN': { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-CN' },
-  'zh-TW': { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-TW' },
-  'en-US': { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US' },
-  'ja-JP': { openai: 'nova',     elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ja-JP' },
-  'ko-KR': { openai: 'fable',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ko-KR' },
-  'en-US-male': { openai: 'onyx', elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US' },
+  // Browser/Web Speech codes → engine-specific voice IDs
+  'zh-CN': {
+    openai:     'alloy',          // alloy reads Chinese reasonably with gpt-4o-mini-tts
+    elevenlabs: '21m00Tcm4TlvDq8ikWAM', // Rachel — multilingual capable
+    kokoro:     'zh-CN-female',  // Kokoro Chinese female voice
+  },
+  'zh-TW': {
+    openai:     'alloy',
+    elevenlabs: '21m00Tcm4TlvDq8ikWAM', // Rachel — best for Traditional Chinese
+    kokoro:     'zh-CN-female',  // Kokoro zh-CN works for zh-TW input; inference.sh handles it
+  },
+  'en-US': {
+    openai:     'alloy',
+    elevenlabs: '21m00Tcm4TlvDq8ikWAM',
+    kokoro:     'en-US-female',
+  },
+  'ja-JP': {
+    openai:     'nova',
+    elevenlabs: '21m00Tcm4TlvDq8ikWAM',
+    kokoro:     'ja-JP-female',  // Kokoro Japanese female voice
+  },
+  'ko-KR': {
+    openai:     'fable',
+    elevenlabs: '21m00Tcm4TlvDq8ikWAM',
+    kokoro:     'ko-KR-female', // Kokoro Korean female voice
+  },
+  'en-US-male': {
+    openai:     'onyx',          // male voice — good for English
+    elevenlabs: 'TXwrLCqUhvBplvbJPGqE', // Marcus — English male voice
+    kokoro:     'en-US-male',
+  },
 };
 
 function resolveVoice(engine, frontendVoice) {
