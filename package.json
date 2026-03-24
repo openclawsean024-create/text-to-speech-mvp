@@ -1,13 +1,32 @@
 {
   "name": "text-to-speech-mvp",
-  "version": "2.0.0",
-  "description": "文字轉語音 - 產品化版本",
-  "main": "api/tts.js",
-  "engines": {
-    "node": ">=18"
+  "version": "3.0.0",
+  "description": "文字轉語音 v2.0 - 多引擎 AI TTS 產品化版本",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "openai": "^4.86.0"
+    "@clerk/nextjs": "^6.12.0",
+    "@vercel/kv": "^3.0.0",
+    "next": "^14.2.0",
+    "openai": "^4.86.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }
