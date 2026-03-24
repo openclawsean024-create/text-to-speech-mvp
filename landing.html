@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 文字轉語音 | 支援中文發音的自然語音合成</title>
+    <meta name="description" content="免費 AI 文字轉語音工具，支援 OpenAI、ElevenLabs、Kokoro 三大引擎，中文發音自然流暢。支援 PDF、EPUB、DOCX 多格式上傳。">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #0071e3; --accent: #34c759; --text: #1d1d1f; --text2: #86868b; --bg: #f5f5f7; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); }
+        
+        /* Hero */
+        .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%); color: #fff; padding: 80px 20px; text-align: center; }
+        .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero .subtitle { font-size: 20px; color: #aaa; max-width: 600px; margin: 0 auto 32px; line-height: 1.6; }
+        .hero .cta { display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; }
+        .hero .cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
+        .hero .badge { display: inline-block; background: rgba(52,199,89,0.2); color: #34c759; padding: 6px 14px; border-radius: 20px; font-size: 13px; margin-top: 16px; }
+        
+        /* Features */
+        .features { padding: 60px 20px; max-width: 1000px; margin: 0 auto; }
+        .features h2 { font-size: 32px; text-align: center; margin-bottom: 40px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .feature-card { background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .feature-icon { font-size: 36px; margin-bottom: 16px; }
+        .feature-card h3 { font-size: 18px; margin-bottom: 10px; color: var(--primary); }
+        .feature-card p { color: var(--text2); line-height: 1.6; font-size: 14px; }
+        
+        /* Engines */
+        .engines { background: #fff; padding: 60px 20px; }
+        .engines-inner { max-width: 900px; margin: 0 auto; }
+        .engines h2 { font-size: 32px; text-align: center; margin-bottom: 40px; }
+        .engines-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 700px) { .engines-grid { grid-template-columns: 1fr; } }
+        .engine-card { background: var(--bg); border-radius: 12px; padding: 24px; text-align: center; }
+        .engine-card .logo { font-size: 32px; margin-bottom: 12px; }
+        .engine-card h3 { font-size: 16px; margin-bottom: 8px; }
+        .engine-card p { font-size: 13px; color: var(--text2); }
+        .engine-card .tag { display: inline-block; background: var(--primary); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 20px; margin-top: 12px; }
+        
+        /* Formats */
+        .formats { padding: 60px 20px; max-width: 800px; margin: 0 auto; text-align: center; }
+        .formats h2 { font-size: 28px; margin-bottom: 24px; }
+        .format-tags { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+        .format-tag { background: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* CTA Section */
+        .cta-section { background: linear-gradient(135deg, #667eea, #764ba2); padding: 60px 20px; text-align: center; color: #fff; }
+        .cta-section h2 { font-size: 28px; margin-bottom: 16px; }
+        .cta-section p { opacity: 0.9; margin-bottom: 24px; }
+        .cta-section .btn { display: inline-block; padding: 14px 32px; background: #fff; color: #667eea; text-decoration: none; border-radius: 10px; font-weight: 600; }
+        
+        /* Footer */
+        .footer { background: #1a1a2e; color: #666; padding: 40px 20px; text-align: center; font-size: 13px; }
+        .footer a { color: #888; text-decoration: none; }
+        
+        /* Demo */
+        .demo { background: #fff; padding: 40px 20px; text-align: center; }
+        .demo iframe { width: 100%; max-width: 760px; height: 600px; border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>🎤 AI 文字轉語音</h1>
+        <p class="subtitle">支援中文自然發音的 AI 語音合成工具。免費瀏覽器引擎，付費 API 引擎可下載高品質音檔。</p>
+        <a href="/app" class="cta">🚀 開始使用</a>
+        <div class="badge">✓ 無需安裝 ✓ 瀏覽器直接使用 ✓ 支援多種格式</div>
+    </div>
+
+    <div class="features">
+        <h2>為什麼選擇我們？</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3>中文自然發音</h3>
+                <p>專為中文優化，ElevenLabs 多語言引擎提供自然流暢的中文語音，適合有聲書、 Podcast 製作。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📄</div>
+                <h3>多格式支援</h3>
+                <p>直接上傳 PDF、DOCX、EPUB、TXT、SRT、VTT 等格式，自動解析文字內容。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>多種語速語調</h3>
+                <p>可調整語速 0.75x-2x、音調、音量，滿足不同場景需求。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔊</div>
+                <h3>6+ 種聲音選擇</h3>
+                <p>中文女聲/男聲、英文、日文、韓文等多種聲線可選。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <h3>轉換歷史記錄</h3>
+                <p>自動保存轉換歷史，可隨時回溯重新播放或下載。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>隱私安全</h3>
+                <p>所有處理在瀏覽器或雲端進行，支援自帶 API Key，資料不經過我們的伺服器。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="engines">
+        <div class="engines-inner">
+            <h2>支援三大 AI 引擎</h2>
+            <div class="engines-grid">
+                <div class="engine-card">
+                    <div class="logo">🎙️</div>
+                    <h3>OpenAI TTS</h3>
+                    <p>gpt-4o-mini-tts<br>6 種聲音</p>
+                    <span class="tag">高品質</span>
+                </div>
+                <div class="engine-card">
+                    <div class="logo">🎧</div>
+                    <h3>ElevenLabs</h3>
+                    <p>Multilingual v2<br>30+ 語言</p>
+                    <span class="tag">最自然</span>
+                </div>
+                <div class="engine-card">
+                    <div class="logo">🔉</div>
+                    <h3>Kokoro</h3>
+                    <p>inference.sh<br>中文優化</p>
+                    <span class="tag">高性價比</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="formats">
+        <h2>支援的檔案格式</h2>
+        <div class="format-tags">
+            <span class="format-tag">📄 PDF</span>
+            <span class="format-tag">📝 DOCX</span>
+            <span class="format-tag">📚 EPUB</span>
+            <span class="format-tag">📝 TXT</span>
+            <span class="format-tag">🎬 SRT</span>
+            <span class="format-tag">🎬 VTT</span>
+            <span class="format-tag">🎵 LRC</span>
+        </div>
+    </div>
+
+    <div class="demo">
+        <h2>線上預覽</h2>
+        <iframe src="/app" title="TTS App Preview"></iframe>
+    </div>
+
+    <div class="cta-section">
+        <h2>準備好開始了嗎？</h2>
+        <p>免費瀏覽器引擎無需 API Key，立即體驗 AI 文字轉語音的魅力。</p>
+        <a href="/app" class="btn">🚀 開始免費使用</a>
+    </div>
+
+    <div class="footer">
+        <p>AI 文字轉語音工具 | OpenClaw 生態系</p>
+        <p style="margin-top:8px;"><a href="https://github.com/openclawsean024-create/text-to-speech-mvp" target="_blank">GitHub</a></p>
+    </div>
+</body>
+</html>

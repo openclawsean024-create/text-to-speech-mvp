@@ -28,8 +28,12 @@
       "dest": "/pricing.html"
     },
     {
-      "src": "/(.*)",
+      "src": "/app",
       "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/landing.html"
     }
   ],
   "headers": [
