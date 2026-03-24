@@ -1,114 +1,107 @@
-# 文字轉語音 (Text-to-Speech MVP)
+# 文字轉語音 v2.0
 
-多引擎 AI 文字轉語音應用，支援瀏覽器內建語音（免費）和 OpenAI / ElevenLabs / Kokoro 雲端引擎。
+多引擎 AI TTS 服務，支援 OpenAI、ElevenLabs、Kokoro。
 
-**線上體驗**: https://text-to-speech-mvp.vercel.app/
+## 功能
 
----
+- 🌐 **瀏覽器內建語音** - 免費，無需 API Key
+- 🎙️ **OpenAI gpt-4o-mini-tts** - 高品質，支援 30+ 語言
+- 🎧 **ElevenLabs Multilingual v2** - 專業配音品質
+- 🔉 **Kokoro (inference.sh)** - 開源方案
+- 📊 **使用量儀表板** - 追蹤每日/每月使用量
+- 🔑 **API Key 管理** - 安全儲存你的 API Key
+- 📁 **多格式支援** - TXT, SRT, VTT, LRC, EPUB, PDF, DOCX
 
-## 功能特色
-
-- **多引擎支援**: Web Speech API（免費）、OpenAI gpt-4o-mini-tts、ElevenLabs Multilingual v2、inference.sh Kokoro
-- **多語言**: 中文（簡體/繁體）、英文、日文、韓文
-- **檔案上傳**: 支援 .txt、.srt、.vtt、.lrc、.epub、.docx、.pdf
-- **聲音預覽**: 使用 Web Speech API 即時預覽各聲音
-- **歷史記錄**: 最近 10 筆記錄，點擊即可載入
-- **語速/音調/音量控制**
-- **響應式設計**: 支援手機和桌面
-
----
-
-## 引擎與聲音
-
-### 聲音對照表（前端 → 各引擎）
-
-| 前端代碼 | 說明       | OpenAI | ElevenLabs | Kokoro        |
-|----------|-----------|--------|-------------|---------------|
-| zh-CN    | 中文-女   | alloy  | Rachel      | zh-CN-female  |
-| zh-TW    | 中文-男   | alloy  | Rachel      | zh-CN-female  |
-| en-US    | 英文-女   | alloy  | Rachel      | en-US-female  |
-| en-US-male | 英文-男 | onyx   | Marcus      | en-US-male    |
-| ja-JP    | 日文-女   | nova   | Rachel      | ja-JP-female  |
-| ko-KR    | 韓文-女   | fable  | Rachel      | ko-KR-female  |
-
-### Kokoro 聲音架構
-
-Kokoro (inference.sh) 的聲音命名格式：
+## 架構
 
 ```
-[語言前綴]_[性別/類型]
-af_* = American Female,  bf_* = British Female
-am_* = American Male,    bm_* = British Male
+Next.js 14 App Router
+├── app/
+│   ├── page.tsx          # TTS 首頁 (landing)
+│   ├── pricing/page.tsx  # 定價頁面
+│   ├── dashboard/page.tsx # 使用量儀表板 + API Key 管理
+│   └── api/
+│       ├── tts/          # TTS 合成 API
+│       ├── keys/         # API Key CRUD
+│       ├── usage/        # 使用量查詢
+│       └── health/       # 健康檢查
+├── components/           # UI 組件
+└── lib/                  # 工具函式
 ```
 
----
-
-## 環境變數（後端）
-
-在 Vercel 專案設定中設定以下環境變數：
-
-| 變數                    | 必填 | 說明                              |
-|------------------------|------|----------------------------------|
-| `OPENAI_API_KEY`       | 若使用 OpenAI 引擎 | OpenAI API Key  |
-| `ELEVENLABS_API_KEY`   | 若使用 ElevenLabs | ElevenLabs API Key |
-| `KOKORO_API_KEY`       | 若使用 Kokoro 引擎 | inference.sh API Key |
-| `KOKORO_APP_ID`        | 否   | inference.sh App ID（預設 `kokoro`）|
-| `KOKORO_API_URL`       | 否   | Kokoro API URL（進階）           |
-
----
-
-## 部署
-
-### Vercel 部署
-
-```bash
-npm i -g vercel
-vercel login
-vercel --prod
-```
-
-### 本地開發
+## 快速開始
 
 ```bash
 npm install
-vercel dev
+npm run dev
 ```
 
----
+## 部署到 Vercel
 
-## API
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/openclawsean024-create/text-to-speech-mvp)
 
-### POST /api/tts
+## 環境變數設定
 
-```json
-{
-  "text": "要轉換的文字（最多 5000 字）",
-  "engine": "openai | elevenlabs | kokoro",
-  "voice": "前端聲音代碼（可選）",
-  "speed": 1.0,
-  "plan": "free | starter | pro"
-}
+### Clerk (用戶系統)
+
+1. 前往 [dashboard.clerk.com](https://dashboard.clerk.com) 建立應用
+2. 複製 Publishable Key 和 Secret Key
+3. 在 Vercel 設定環境變數：
+
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
 ```
 
-### GET /api/health
+### Vercel KV (資料儲存)
 
-健康檢查端點。
+1. 在 Vercel Dashboard → Storage → Create KV Database
+2. 選擇 region (建議 `hnd1` - 東京)
+3. 將 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN` 加入環境變數
 
----
+### API Keys (可選)
 
-## 速率限制
+如果你想提供預設 API Key（用戶未自備時使用）：
 
-| 方案   | 每日限制 |
-|--------|---------|
-| 免費   | 10 次   |
-| Starter| 100 次  |
-| Pro    | 1000 次 |
+```
+OPENAI_API_KEY=sk-...
+ELEVENLABS_API_KEY=...
+KOKORO_API_KEY=...
+INFERENCE_SH_API_KEY=...
+```
 
----
+## 使用流程
 
-## 技術棧
+1. **註冊/登入** - 使用 Clerk 認證
+2. **設定 API Key** - 在控制台儲存你的 OpenAI/ElevenLabs Key
+3. **開始轉換** - 選擇引擎，輸入文字，享受高品質 TTS
 
-- **前端**: HTML5 + CSS3 + Vanilla JS（無框架依賴）
-- **後端**: Node.js + Vercel Serverless Functions
-- **TTS 引擎**: OpenAI gpt-4o-mini-tts、ElevenLabs Multilingual v2、inference.sh Kokoro
-- **字體**: Google Noto Sans TC
+## 方案說明
+
+| 方案 | 每日限制 | 引擎 |
+|------|---------|------|
+| 🌐 免費 | 10 次 | 瀏覽器語音 |
+| ⚡ Starter | 100 次 | 所有引擎 |
+| 🚀 Pro | 1000 次 | 所有引擎 |
+
+## 開發
+
+```bash
+# 本地開發
+npm run dev
+
+# 建置
+npm run build
+
+# 生產部署
+vercel --prod
+```
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Auth**: Clerk
+- **Storage**: Vercel KV (Upstash Redis)
+- **Styling**: Tailwind CSS
+- **TTS Engines**: OpenAI, ElevenLabs, Kokoro (inference.sh)
+- **Deployment**: Vercel
