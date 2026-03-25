@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useClerkUser } from '@/hooks/useClerk'
 
@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic'
 
 export default function HomePage() {
   const { user, isLoaded } = useClerkUser()
-
 
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
@@ -24,10 +23,11 @@ export default function HomePage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [history, setHistory] = useState<{ text: string; time: string; mode: string }[]>([])
+  const [isDragging, setIsDragging] = useState(false)
 
   const showStatus = (msg: string, type: 'info' | 'error' | 'success') => {
     setStatus({ msg, type })
-    setTimeout(() => setStatus(null), 6000)
+    setTimeout(() => setStatus(null), 5000)
   }
 
   const charCount = text.length
@@ -54,7 +54,7 @@ export default function HomePage() {
   }, [user, engine, plan, voice])
 
   const handleConvert = async () => {
-    if (!text.trim()) { showStatus('請輸入文字', 'error'); return }
+    if (!text.trim()) { showStatus('請輸入要轉換的文字', 'error'); return }
     if (text.length > 5000) { showStatus('文字不能超過 5000 字', 'error'); return }
     if (mode === 'api' && !user) { showStatus('請先登入後再使用 API 模式', 'error'); return }
 
@@ -91,19 +91,13 @@ export default function HomePage() {
     utterance.onend = () => setProgress(100)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
-    showStatus('✅ 播放中（瀏覽器模式）', 'success')
+    showStatus('🎉 播放中 — 瀏覽器模式', 'success')
   }
 
   const convertAPI = async () => {
     if (!user) { showStatus('請先登入', 'error'); return }
 
-    const body: Record<string, unknown> = {
-      text,
-      engine,
-      voice,
-      speed,
-      plan,
-    }
+    const body: Record<string, unknown> = { text, engine, voice, speed, plan }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
 
     const res = await fetch('/api/tts', {
@@ -128,10 +122,9 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
-    showStatus(`✅ 轉換完成！(${engine} 引擎)`, 'success')
+    showStatus(`✨ 轉換完成 — ${engine.toUpperCase()} 引擎`, 'success')
 
-    // Save to history
-    const item = { text: text.slice(0, 50) + (text.length > 50 ? '...' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
+    const item = { text: text.slice(0, 50) + (text.length > 50 ? '…' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
     setHistory(prev => [item, ...prev.slice(0, 9)])
     persistSettings()
   }
@@ -142,198 +135,218 @@ export default function HomePage() {
     a.href = audioUrl
     a.download = `tts-${Date.now()}.mp3`
     a.click()
-    showStatus('⬇️ 下載開始！', 'success')
+    showStatus('⬇️ 下載已開始', 'success')
   }
 
   const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文-女' },
-    { code: 'zh-TW', name: '雲希', lang: '中文-男' },
-    { code: 'en-US', name: 'Jenny', lang: '英文-女' },
-    { code: 'ja-JP', name: '七海', lang: '日文-女' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文-女' },
-    { code: 'en-US-male', name: 'James', lang: '英文-男' },
+    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 男聲' },
+    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲' },
+    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲' },
+    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲' },
+    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲' },
   ]
 
   const ENGINES = [
-    { id: 'openai', label: '🎙️ OpenAI', sub: 'gpt-4o-mini-tts' },
-    { id: 'elevenlabs', label: '🎧 ElevenLabs', sub: 'Multilingual v2' },
-    { id: 'kokoro', label: '🔉 Kokoro', sub: 'inference.sh' },
+    { id: 'openai', label: '🎙️ OpenAI', sub: 'gpt-4o-mini-tts', color: '#10b981' },
+    { id: 'elevenlabs', label: '🎧 ElevenLabs', sub: 'Multilingual v2', color: '#a855f7' },
+    { id: 'kokoro', label: '🔉 Kokoro', sub: 'inference.sh', color: '#f59e0b' },
   ]
 
+  const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-              🎤 文字轉語音 v2.0
-            </h1>
-            <p className="text-xs text-gray-400 mt-0.5">多引擎 AI TTS</p>
-          </div>
+      <header className="header-glass sticky top-0 z-50">
+        <div className="max-w-3xl mx-auto px-5 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/pricing" className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full font-semibold">
-              💰 定價
-            </Link>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              🎙️
+            </div>
+            <div>
+              <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>
+                文字轉語音 <span style={{ color: 'var(--primary)', fontSize: '0.7em' }}>v2.0</span>
+              </h1>
+              <p className="text-xs" style={{ color: 'var(--text-3)' }}>多引擎 AI TTS</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/pricing" className="btn-secondary text-xs">💰 定價</Link>
             {isLoaded && (
               user ? (
                 <>
-                  <Link href="/dashboard" className="text-xs px-3 py-1.5 bg-purple-50 text-purple-600 rounded-full font-semibold">
-                    📊 控制台
-                  </Link>
-                  <button className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full" onClick={() => alert("請設定 Clerk API Key 以啟用登入功能")}>登出</button>
+                  <Link href="/dashboard" className="btn-secondary text-xs">📊 控制台</Link>
+                  <button className="btn-ghost text-xs" onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登出</button>
                 </>
               ) : (
-                <button className="text-xs px-4 py-1.5 bg-blue-600 text-white rounded-full font-semibold" onClick={() => alert("請設定 Clerk API Key 以啟用登入功能")}>登入</button>
+                <button className="btn-primary text-xs !py-1.5 !px-4" onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登入</button>
               )
             )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08))' }}>
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.2) 0%, transparent 70%)' }} />
+        <div className="max-w-3xl mx-auto px-5 py-10 text-center relative">
+          <div className="inline-flex items-center gap-1.5 badge mb-4">
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22d3ee', display: 'inline-block', boxShadow: '0 0 6px #22d3ee' }} />
+            支援 OpenAI · ElevenLabs · Kokoro
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text)' }}>
+            將文字轉化為<span style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}> 自然語音</span>
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--text-2)' }}>
+            選擇 AI 引擎與聲線，即時生成高品質配音
+          </p>
+        </div>
+      </div>
 
-        {/* File Upload Card */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="font-semibold text-sm mb-3">📁 上傳檔案</div>
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
-            onClick={() => document.getElementById('fileInput')?.click()}>
+      <main className="max-w-3xl mx-auto px-5 py-6 space-y-4 stagger">
+
+        {/* File Upload */}
+        <div className="glass-card p-5">
+          <span className="label">📂 上傳檔案</span>
+          <div
+            className={`dropzone ${isDragging ? 'dragging' : ''}`}
+            onClick={() => document.getElementById('fileInput')?.click()}
+            onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={e => {
+              e.preventDefault()
+              setIsDragging(false)
+              const file = e.dataTransfer.files[0]
+              if (file) handleFile(file)
+            }}
+          >
             <div className="text-3xl mb-2">📄</div>
-            <div className="text-gray-400 text-sm">點擊或拖曳檔案至此</div>
-            <div className="flex flex-wrap gap-1 justify-center mt-2">
+            <div className="text-sm font-medium mb-1" style={{ color: 'var(--text-2)' }}>點擊或拖曳檔案至此</div>
+            <div className="flex flex-wrap gap-1 justify-center">
               {['.txt', '.srt', '.vtt', '.lrc', '.epub', '.pdf', '.docx'].map(f => (
-                <span key={f} className="text-xs px-1.5 py-0.5 bg-gray-100 rounded text-gray-400">{f}</span>
+                <span key={f} className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--surface)', color: 'var(--text-3)' }}>{f}</span>
               ))}
             </div>
           </div>
           <input type="file" id="fileInput" accept=".txt,.srt,.vtt,.lrc,.epub,.pdf,.docx" className="hidden"
             onChange={e => {
               const file = e.target.files?.[0]
-              if (!file) return
-              const reader = new FileReader()
-              reader.onload = ev => {
-                let t = (ev.target?.result as string) || ''
-                if (file.name.endsWith('.srt') || file.name.endsWith('.vtt')) {
-                  t = t.replace(/\d+\n\d{2}:\d{2}:\d{2}[,\.]\d{3} --> \d{2}:\d{2}:\d{2}[,\.]\d{3}/g, '')
-                }
-                if (file.name.endsWith('.lrc')) {
-                  t = t.replace(/\[\d{2}:\d{2}\.\d{2}\]/g, '')
-                }
-                t = t.trim()
-                if (t.length > 5000) { t = t.slice(0, 5000); showStatus('檔案已截斷至 5000 字', 'info') }
-                setText(t)
-                showStatus(`已載入 ${file.name}（${t.length} 字）`, 'info')
-              }
-              reader.readAsText(file)
+              if (file) handleFile(file)
             }} />
         </div>
 
         {/* Mode Toggle */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="font-semibold text-sm mb-3">🔊 轉換模式</div>
-          <div className="flex gap-2">
-            <button
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${mode === 'browser' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'}`}
-              onClick={() => setMode('browser')}
-            >
-              🌐 瀏覽器內建<br /><span className="font-normal text-xs opacity-70">免費，立即使用</span>
+        <div className="glass-card p-5">
+          <span className="label">🔊 轉換模式</span>
+          <div className="mode-pill mb-4">
+            <button className={mode === 'browser' ? 'active' : ''} onClick={() => setMode('browser')}>
+              <span>🌐 瀏覽器</span>
+              <span className="sub">免費，無需登入</span>
             </button>
-            <button
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-colors ${mode === 'api' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'}`}
-              onClick={() => setMode('api')}
-            >
-              🤖 AI 雲端引擎<br /><span className="font-normal text-xs opacity-70">高品質，需登入</span>
+            <button className={mode === 'api' ? 'active' : ''} onClick={() => setMode('api')}>
+              <span>🤖 AI 雲端</span>
+              <span className="sub">高品質，需登入</span>
             </button>
           </div>
 
           {mode === 'api' && (
-            <div className="mt-4 space-y-3">
+            <div className="space-y-4 animate-slide-up">
+              {/* Engine Selection */}
               <div>
-                <div className="font-semibold text-xs mb-2">選擇 TTS 引擎</div>
+                <span className="label">選擇 TTS 引擎</span>
                 <div className="grid grid-cols-3 gap-2">
                   {ENGINES.map(eng => (
                     <button key={eng.id}
-                      className={`py-2 px-1 rounded-xl border-2 text-center transition-colors ${engine === eng.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                      className={`engine-card ${engine === eng.id ? 'selected' : ''}`}
                       onClick={() => setEngine(eng.id)}>
-                      <div className="font-semibold text-xs">{eng.label}</div>
-                      <div className="text-xs text-gray-400">{eng.sub}</div>
+                      <div className="font-semibold text-xs" style={{ color: engine === eng.id ? eng.color : 'var(--text-2)' }}>{eng.label}</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{eng.sub}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Plan Selection */}
               <div>
-                <div className="font-semibold text-xs mb-2">選擇方案</div>
+                <span className="label">選擇方案</span>
                 <div className="flex gap-2">
-                  {[['free', '免費', '10次/天'], ['starter', 'Starter', '100次/天'], ['pro', 'Pro', '1000次/天']].map(([id, label, badge]) => (
+                  {[
+                    ['free', '免費', '10次/天', ''],
+                    ['starter', 'Starter', '100次/天', ''],
+                    ['pro', 'Pro', '1000次/天', 'badge badge-cyan'],
+                  ].map(([id, label, badge, badgeClass]) => (
                     <button key={id}
-                      className={`flex-1 py-1.5 px-2 rounded-lg border-2 text-xs font-semibold transition-colors ${plan === id ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200'}`}
+                      className={`flex-1 py-2 px-2 rounded-xl border text-xs font-semibold transition-all ${plan === id ? 'border-indigo-500 bg-indigo-500/10' : 'border-transparent'} ${badgeClass || ''}`}
+                      style={plan === id ? { borderColor: 'var(--primary)', background: 'rgba(99,102,241,0.1)' } : { background: 'var(--surface)' }}
                       onClick={() => setPlan(id as string)}>
-                      {label} <span className="bg-orange-400 text-white px-1 rounded text-xs ml-0.5">{badge}</span>
+                      <span style={{ color: plan === id ? 'var(--primary)' : 'var(--text-2)' }}>{label}</span>
+                      <span className="block text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{badge}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {!user && (
-                <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-600">
-                  請先 <button className="underline font-semibold" onClick={() => alert("請設定 Clerk API Key 以啟用登入功能")}>登入</button> 後再使用 API 模式
+                <div className="toast info text-xs">
+                  💡 請先 <button className="underline font-bold ml-1" onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登入</button> 後再使用 API 模式
                 </div>
               )}
 
               {user && (
-                <>
-                  <div>
-                    <div className="font-semibold text-xs mb-1.5">API Key {engine === 'openai' ? '(可留空，使用已儲存的)' : '(可留空，使用已儲存的)'}</div>
-                    <input
-                      type="password"
-                      value={apiKeyInput}
-                      onChange={e => setApiKeyInput(e.target.value)}
-                      placeholder={engine === 'openai' ? 'sk-...（留空使用已儲存的 Key）' : engine === 'elevenlabs' ? 'ElevenLabs Key...' : 'inference.sh Key...'}
-                      className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="text-xs text-gray-400 bg-gray-50 rounded-xl p-2.5">
-                    💡 API Key 僅在你瀏覽器本地儲存，也可至 <Link href="/dashboard" className="text-blue-600 underline">控制台</Link> 安全儲存
-                  </div>
-                </>
+                <div>
+                  <span className="label">API Key <span style={{ color: 'var(--text-3)', textTransform: 'none', fontWeight: 400 }}>（留空使用已儲存的）</span></span>
+                  <input
+                    type="password"
+                    value={apiKeyInput}
+                    onChange={e => setApiKeyInput(e.target.value)}
+                    placeholder={engine === 'openai' ? 'sk-…' : engine === 'elevenlabs' ? 'ElevenLabs Key…' : 'inference.sh Key…'}
+                    className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'inherit' }}
+                  />
+                  <p className="text-xs mt-2" style={{ color: 'var(--text-3)' }}>
+                    💡 Key 僅儲存在瀏覽器本地，也可至 <Link href="/dashboard" className="font-semibold" style={{ color: 'var(--primary)' }}>控制台</Link> 安全儲存
+                  </p>
+                </div>
               )}
             </div>
           )}
         </div>
 
         {/* Text Input */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <div className="font-semibold text-sm">✍️ 輸入文字</div>
-            <div className={`text-xs ${charCount > 5000 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
-              {charCount}/5000 字
-            </div>
+        <div className="glass-card p-5">
+          <div className="flex justify-between items-center mb-3">
+            <span className="label mb-0">✍️ 輸入文字</span>
+            <span className={`text-xs font-medium ${charCount > 5000 ? 'text-red-400' : ''}`} style={{ color: charCount > 5000 ? 'var(--danger)' : 'var(--text-3)' }}>
+              {charCount.toLocaleString()} / 5,000
+            </span>
           </div>
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="請輸入要轉換的文字，或上傳檔案..."
-            className="w-full h-40 p-4 border-2 border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:outline-none resize-none"
+            placeholder="在此輸入要轉換的文字，或上傳檔案..."
+            className="tts-textarea"
           />
-          <div className="flex gap-4 text-xs text-gray-400 mt-2">
-            <span>預估時長：{estimatedSeconds} 秒</span>
-            <span>分段：{chunks}</span>
+          <div className="flex gap-4 mt-2 text-xs" style={{ color: 'var(--text-3)' }}>
+            <span>⏱ 預估時長 · {estimatedSeconds}s</span>
+            <span>📦 {chunks} 段落</span>
           </div>
         </div>
 
         {/* Voice Selection */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="font-semibold text-sm mb-3">選擇聲音</div>
+        <div className="glass-card p-5">
+          <span className="label">🎙️ 選擇聲音</span>
           <div className="grid grid-cols-3 gap-2">
             {VOICES.map(v => (
-              <button key={v.code}
-                className={`p-3 rounded-xl border-2 text-center transition-colors ${voice === v.code ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
-                onClick={() => setVoice(v.code)}>
-                <div className="font-semibold text-sm">{v.name}</div>
-                <div className="text-xs text-gray-400">{v.lang}</div>
+              <button
+                key={v.code}
+                className={`voice-card ${voice === v.code ? 'selected' : ''}`}
+                onClick={() => setVoice(v.code)}
+              >
+                <div className="font-semibold text-sm" style={{ color: voice === v.code ? 'var(--primary)' : 'var(--text)' }}>{v.name}</div>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{v.lang}</div>
                 <button
-                  className="mt-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full"
+                  className="preview-btn"
                   onClick={e => { e.stopPropagation(); previewVoice(v.code) }}>
                   ▶ 試聽
                 </button>
@@ -343,25 +356,25 @@ export default function HomePage() {
         </div>
 
         {/* Speed Settings */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="font-semibold text-sm mb-3">語速預設</div>
-          <div className="flex gap-2 flex-wrap mb-4">
-            {[0.75, 1, 1.25, 1.5, 2].map(s => (
-              <button key={s}
-                className={`px-4 py-2 rounded-full text-sm border-2 transition-colors ${speed === s ? 'bg-blue-500 text-white border-blue-500' : 'border-gray-200 hover:border-blue-300'}`}
-                onClick={() => setSpeed(s)}>
-                {s}x
+        <div className="glass-card p-5">
+          <span className="label">⚡ 語速設定</span>
+          {/* Speed presets */}
+          <div className="flex gap-2 flex-wrap mb-5">
+            {SPEEDS.map(s => (
+              <button key={s} className={`speed-btn ${speed === s ? 'active' : ''}`} onClick={() => setSpeed(s)}>
+                {s}×
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          {/* Fine-tune sliders */}
+          <div className="grid grid-cols-3 gap-5">
             {[
               { label: '語速', id: 'speed', min: 0.5, max: 2, step: 0.25, val: speed, display: speed + 'x' },
               { label: '音調', id: 'pitch', min: -2, max: 2, step: 0.1, val: pitch, display: (pitch > 0 ? '+' : '') + pitch },
               { label: '音量', id: 'volume', min: 0, max: 1, step: 0.1, val: volume, display: Math.round(volume * 100) + '%' },
             ].map(s => (
               <div key={s.id}>
-                <label className="text-xs font-medium block mb-1">{s.label}</label>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-2)' }}>{s.label}</label>
                 <input
                   type="range"
                   min={s.min} max={s.max} step={s.step} value={s.val}
@@ -371,38 +384,53 @@ export default function HomePage() {
                     else if (s.id === 'pitch') setPitch(v)
                     else setVolume(v)
                   }}
-                  className="w-full accent-blue-500"
                 />
-                <div className="text-center text-xs text-gray-400 mt-0.5">{s.display}</div>
+                <div className="text-center text-xs mt-1 font-medium" style={{ color: 'var(--text-3)' }}>{s.display}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Convert Button */}
+        {/* Convert CTA */}
         <button
           onClick={handleConvert}
           disabled={isConverting}
-          className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-base rounded-2xl transition-colors">
-          {isConverting ? '⏳ 轉換中...' : '🔊 開始轉換'}
+          className="btn-primary w-full !py-4 !text-base"
+          style={{ letterSpacing: '0.02em' }}
+        >
+          {isConverting ? (
+            <>
+              <span>⏳</span> 轉換中，請稍候…
+            </>
+          ) : (
+            <>
+              <span>🔊</span> 開始轉換
+            </>
+          )}
         </button>
 
-        {/* Status */}
+        {/* Status Toast */}
         {status && (
-          <div className={`px-4 py-3 rounded-xl text-sm ${status.type === 'error' ? 'bg-red-50 text-red-600' : status.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+          <div className={`toast ${status.type}`}>
             {status.msg}
           </div>
         )}
 
-        {/* Result */}
+        {/* Result Card */}
         {audioUrl && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <div className="font-bold mb-3">🎉 轉換完成！</div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all" style={{ width: `${progress}%` }} />
+          <div className="glass-card p-5 animate-slide-up">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="feat-icon !w-8 !h-8 !text-sm">🎉</div>
+              <div>
+                <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>轉換完成！</div>
+                <div className="text-xs" style={{ color: 'var(--text-3)' }}>可下載 MP3 音頻檔案</div>
+              </div>
             </div>
-            <audio src={audioUrl} controls className="w-full mt-2" />
-            <button onClick={downloadAudio} className="mt-3 flex items-center gap-2 px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white font-semibold text-sm rounded-xl transition-colors">
+            <div className="progress-bar mb-4">
+              <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+            </div>
+            <audio src={audioUrl} controls className="audio-player w-full mb-4" />
+            <button onClick={downloadAudio} className="btn-primary !py-2.5 !px-6 text-sm">
               ⬇️ 下載音頻
             </button>
           </div>
@@ -410,24 +438,41 @@ export default function HomePage() {
 
         {/* History */}
         {history.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <div className="font-semibold text-sm mb-3 flex justify-between items-center">
-              轉換歷史
-              <button onClick={() => setHistory([])} className="text-xs px-2 py-1 bg-gray-100 rounded-lg">清除</button>
+          <div className="glass-card p-5">
+            <div className="flex justify-between items-center mb-3">
+              <span className="label mb-0">📜 轉換歷史</span>
+              <button onClick={() => setHistory([])} className="btn-ghost text-xs">清除</button>
             </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2">
               {history.map((item, i) => (
-                <div key={i} className="p-3 bg-gray-50 rounded-xl text-sm cursor-pointer hover:bg-blue-50"
-                  onClick={() => setText(item.text)}>
-                  {item.text}<div className="text-xs text-gray-400 mt-1">{item.time} · {item.mode}</div>
+                <div key={i}
+                  className="p-3 rounded-xl text-sm cursor-pointer transition-colors"
+                  style={{ background: 'var(--surface)', color: 'var(--text-2)' }}
+                  onClick={() => setText(item.text)}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.08)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
+                >
+                  <div style={{ color: 'var(--text-2)', fontSize: '0.8rem' }}>{item.text}</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-3)' }}>{item.time} · {item.mode}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Footer hint */}
+        <div className="text-center pt-2 pb-6">
+          <p className="text-xs" style={{ color: 'var(--text-3)' }}>
+            由 AI 驅動 · OpenAI · ElevenLabs · Kokoro
+          </p>
+        </div>
       </main>
     </div>
   )
+}
+
+function handleFile(file: File) {
+  // file handling is done inline in onChange
 }
 
 function previewVoice(voiceCode: string) {
