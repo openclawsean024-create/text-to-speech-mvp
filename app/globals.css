@@ -640,22 +640,4 @@ input[type="text"]:focus {
   box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
 }
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        primary: '#7c3aed',
-        accent: '#06b6d4',
-        danger: '#ef4444',
-        warning: '#f59e0b',
-      },
-    },
-  },
-  plugins: [],
-}
+/* Tailwind config moved to tailwind.config.js */
