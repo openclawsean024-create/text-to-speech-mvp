@@ -139,12 +139,12 @@ export default function HomePage() {
   }
 
   const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', emoji: '👩', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 男聲', emoji: '👨', color: '#60a5fa' },
-    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', emoji: '👩‍🦰', color: '#fb923c' },
-    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', emoji: '👩‍🦱', color: '#a78bfa' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', emoji: '👩‍🦳', color: '#34d399' },
-    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', emoji: '👨‍🦱', color: '#f87171' },
+    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 男聲', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face', color: '#60a5fa' },
+    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
+    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
+    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
+    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
   ]
 
   const ENGINES = [
@@ -388,8 +388,13 @@ export default function HomePage() {
                   onClick={() => setVoice(v.code)}
                 >
                   {/* Avatar circle */}
-                  <div className="voice-avatar" style={{ background: `linear-gradient(135deg, ${v.color}cc, ${v.color}66)` }}>
-                    {v.emoji}
+                  <div className="voice-avatar" style={{ background: `linear-gradient(135deg, ${v.color}cc, ${v.color}66)`, display: 'block', overflow: 'hidden' }}>
+                    <img
+                      src={v.photo}
+                      alt={v.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
                   </div>
                   <div className="font-bold text-sm" style={{ color: voice === v.code ? 'var(--primary-light)' : 'var(--text)' }}>{v.name}</div>
                   <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{v.lang}</div>
