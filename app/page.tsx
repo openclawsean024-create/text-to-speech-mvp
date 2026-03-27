@@ -139,12 +139,12 @@ export default function HomePage() {
   }
 
   const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 男聲', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face', color: '#60a5fa' },
-    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
-    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
-    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
+    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 男聲', photo: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=200&h=200&fit=crop&crop=face', color: '#60a5fa' },
+    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
+    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
+    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
+    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
   ]
 
   const ENGINES = [
