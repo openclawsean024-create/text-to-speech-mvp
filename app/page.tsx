@@ -543,7 +543,12 @@ function previewVoice(voiceCode: string) {
   const voices = window.speechSynthesis.getVoices()
 
   // Gender-aware voice matching: prefer matching both lang AND gender
-  const isMale = voiceCode.endsWith('-male')
+  // zh-TW is male (男聲) but lacks '-male' suffix — use explicit map
+  const GENDER_MAP: Record<string, boolean> = {
+    'zh-CN': false, 'en-US': false, 'ja-JP': false, 'ko-KR': false,  // female
+    'zh-TW': true, 'en-US-male': true,                                // male
+  }
+  const isMale = GENDER_MAP[voiceCode] ?? voiceCode.endsWith('-male')
   const baseLang = voiceCode.replace('-male', '').split('-')[0]
   const lang = baseLang.split('-')[0]
 
