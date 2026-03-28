@@ -5,13 +5,17 @@ import { synthesize } from '@/lib/tts-engines'
 
 const ALLOWED_ENGINES = ['openai', 'elevenlabs', 'kokoro']
 
+// Voice mapping: frontend voice code → engine-specific voice ID
+// ElevenLabs: verified gender-aware voice IDs
+// - 21m00Tcm4TlvDq8ikWAM = Rachel (female)
+// - AZnzlk1XvdvUeBnXmlZG = Antoni (male)
 const VOICE_MAP: Record<string, Record<string, string>> = {
-  'zh-CN':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-CN' },
-  'zh-TW':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-TW' },
-  'en-US':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US' },
-  'ja-JP':      { openai: 'nova',     elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ja-JP' },
-  'ko-KR':      { openai: 'fable',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ko-KR' },
-  'en-US-male': { openai: 'onyx',     elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US' },
+  'zh-CN':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-CN-female' },  // Female
+  'zh-TW':      { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'zh-CN-male'   },  // Male
+  'en-US':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US-female' },  // Female
+  'ja-JP':      { openai: 'nova',     elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ja-JP-female'  },  // Female
+  'ko-KR':      { openai: 'fable',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ko-KR-female'  },  // Female
+  'en-US-male': { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'en-US-male'   },  // Male
 }
 
 function resolveVoice(engine: string, frontendVoice?: string) {

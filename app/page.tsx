@@ -541,7 +541,23 @@ function previewVoice(voiceCode: string) {
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.rate = 1; utterance.pitch = 1; utterance.volume = 1
   const voices = window.speechSynthesis.getVoices()
-  const voiceObj = voices.find(v => v.lang.includes(voiceCode.replace('-male', '')))
+
+  // Gender-aware voice matching: prefer matching both lang AND gender
+  const isMale = voiceCode.endsWith('-male')
+  const baseLang = voiceCode.replace('-male', '').split('-')[0]
+  const lang = baseLang.split('-')[0]
+
+  let voiceObj = voices.find(v => {
+    const vLang = v.lang.toLowerCase()
+    const matchesLang = vLang.includes(lang) || vLang.startsWith(lang)
+    const matchesGender = isMale ? v.name.toLowerCase().includes('male') : !v.name.toLowerCase().includes('male')
+    return matchesLang && matchesGender
+  })
+  // Fallback: just match language
+  if (!voiceObj) voiceObj = voices.find(v => v.lang.toLowerCase().includes(lang))
+  // Last resort: first match
+  if (!voiceObj) voiceObj = voices.find(v => v.lang.toLowerCase().includes(baseLang.split('-')[0]))
+
   if (voiceObj) utterance.voice = voiceObj
   window.speechSynthesis.cancel()
   window.speechSynthesis.speak(utterance)
