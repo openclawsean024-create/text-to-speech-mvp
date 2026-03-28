@@ -36,9 +36,9 @@ const VOICE_MAP = {
     kokoro:     'zh-CN-female',  // Kokoro Chinese female voice
   },
   'zh-TW': {
-    openai:     'alloy',
-    elevenlabs: '21m00Tcm4TlvDq8ikWAM', // Rachel — best for Traditional Chinese
-    kokoro:     'zh-CN-female',  // Kokoro zh-CN works for zh-TW input; inference.sh handles it
+    openai:     'onyx',           // male voice for Mandarin
+    elevenlabs: 'TXwrLCqUhvBplvbJPGqE', // Marcus — male voice for Traditional Chinese
+    kokoro:     'en-US-male',    // fallback male voice for zh-TW
   },
   'en-US': {
     openai:     'alloy',
