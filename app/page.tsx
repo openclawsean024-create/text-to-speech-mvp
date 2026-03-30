@@ -59,9 +59,9 @@ export default function HomePage() {
   }, [user, engine, plan, voice])
 
   const handleConvert = async () => {
-    if (!text.trim()) { showStatus('請輸入要轉換的文字', 'error'); return }
-    if (text.length > 5000) { showStatus('文字不能超過 5000 字', 'error'); return }
-    if (mode === 'api' && !user) { showStatus('請先登入後再使用 API 模式', 'error'); return }
+    if (!text.trim()) { showStatus('Please enter text to convert', 'error'); return }
+    if (text.length > 5000) { showStatus('Text cannot exceed 5000 characters', 'error'); return }
+    if (mode === 'api' && !user) { showStatus('Please login first to use API mode', 'error'); return }
 
     setIsConverting(true)
     setProgress(0)
@@ -75,7 +75,7 @@ export default function HomePage() {
         await convertAPI()
       }
     } catch (e: unknown) {
-      showStatus('轉換失敗：' + (e instanceof Error ? e.message : String(e)), 'error')
+      showStatus('Conversion failed: ' + (e instanceof Error ? e.message : String(e)), 'error')
     }
     setIsConverting(false)
   }
@@ -96,11 +96,11 @@ export default function HomePage() {
     utterance.onend = () => setProgress(100)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
-    showStatus('播放中 — 瀏覽器模式', 'success')
+    showStatus('Playing... browser mode', 'success')
   }
 
   const convertAPI = async () => {
-    if (!user) { showStatus('請先登入', 'error'); return }
+    if (!user) { showStatus('Please login', 'error'); return }
 
     const body: Record<string, unknown> = { text, engine, voice, speed, plan }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
@@ -140,7 +140,7 @@ export default function HomePage() {
     a.href = audioUrl
     a.download = `tts-${Date.now()}.mp3`
     a.click()
-    showStatus('下載已開始', 'success')
+    showStatus('Download started', 'success')
   }
 
   const VOICES = [
@@ -180,21 +180,21 @@ export default function HomePage() {
               </div>
               <div>
                 <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>
-                  文字轉語音 <span style={{ color: 'var(--primary-light)', fontSize: '0.7em', fontWeight: 700 }}>v2.0</span>
+                  AI Text to Speech <span style={{ color: 'var(--primary-light)', fontSize: '0.7em', fontWeight: 700 }}>v2.0</span>
                 </h1>
-                <p className="text-xs" style={{ color: 'var(--text-3)' }}>多引擎 AI TTS</p>
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>Multi-Engine AI TTS</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>定價</Link>
+              <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>Pricing</Link>
               {isLoaded && (
                 user ? (
                   <>
                     <Link href="/dashboard" className="btn-secondary text-xs"><BarChart3 size={12} className="inline mr-1"/>控制台</Link>
-                    <button className="btn-ghost text-xs" onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登出</button>
+                    <button className="btn-ghost text-xs" onClick={() => alert('Please set Clerk API Key to enable login')}>Logout</button>
                   </>
                 ) : (
-                  <button className="btn-primary text-xs !py-1.5 !px-4 !text-sm !rounded-xl" onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登入</button>
+                  <button className="btn-primary text-xs !py-1.5 !px-4 !text-sm !rounded-xl" onClick={() => alert('Please set Clerk API Key to enable login')}>Login</button>
                 )
               )}
             </div>
@@ -213,23 +213,23 @@ export default function HomePage() {
 
             {/* Main headline */}
             <h2 className="text-4xl sm:text-5xl font-black mb-4 leading-tight" style={{ animation: 'slideUp 0.5s ease 0.1s both' }}>
-              <span style={{ color: 'var(--text)' }}>將文字</span>{' '}
+              <span style={{ color: 'var(--text)' }}>Transform</span>{' '}
               <span style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                轉化為自然語音
+                Text into Natural Speech
               </span>
             </h2>
 
             {/* Subheadline */}
             <p className="text-base mb-2" style={{ color: 'var(--text-2)', animation: 'slideUp 0.5s ease 0.2s both', maxWidth: '480px', margin: '0 auto' }}>
-              選擇頂尖 AI 引擎與風格聲線，即時生成電台級配音
+              Choose top AI engines and voice styles, generate broadcast-quality narration instantly
             </p>
 
             {/* Quick stats */}
             <div className="flex items-center justify-center gap-6 mt-6" style={{ animation: 'slideUp 0.5s ease 0.3s both' }}>
               {[
                 { icon: <Globe size={12} className="inline" />, label: '6+ 語言' },
-                { icon: <Zap size={14} className="inline" />, label: '即時生成' },
-                { icon: <Music size={12} className="inline" />, label: 'MP3 輸出' },
+                { icon: <Zap size={14} className="inline" />, label: 'Instant generation' },
+                { icon: <Music size={12} className="inline" />, label: 'MP3 output' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
                   <span>{item.icon}</span>
@@ -244,7 +244,7 @@ export default function HomePage() {
 
           {/* File Upload */}
           <div className="glass-card p-6">
-            <span className="label"><FolderOpen size={14} className="inline" /> 上傳檔案</span>
+            <span className="label"><FolderOpen size={14} className="inline" /> Upload File</span>
             <div
               className={`dropzone ${isDragging ? 'dragging' : ''}`}
               onClick={() => document.getElementById('fileInput')?.click()}
@@ -271,15 +271,15 @@ export default function HomePage() {
 
           {/* Mode Toggle */}
           <div className="glass-card p-6">
-            <span className="label"><Volume2 size={16} className="inline" /> 轉換模式</span>
+            <span className="label"><Volume2 size={16} className="inline" /> Conversion Mode</span>
             <div className="mode-pill mb-5">
               <button className={mode === 'browser' ? 'active' : ''} onClick={() => setMode('browser')}>
-                <span><Globe size={14} className="inline" /> 瀏覽器模式</span>
-                <span className="sub">免費，無需登入</span>
+                <span><Globe size={14} className="inline" /> Browser Mode</span>
+                <span className="sub">Free, no login required</span>
               </button>
               <button className={mode === 'api' ? 'active' : ''} onClick={() => setMode('api')}>
                 <span><Bot size={14} className="inline" /> AI 雲端</span>
-                <span className="sub">高品質，需登入</span>
+                <span className="sub">High quality, login required</span>
               </button>
             </div>
 
@@ -287,7 +287,7 @@ export default function HomePage() {
               <div className="space-y-5 animate-slide-up">
                 {/* Engine Selection */}
                 <div>
-                  <span className="label">選擇 TTS 引擎</span>
+                  <span className="label">Select TTS Engine</span>
                   <div className="grid grid-cols-3 gap-3">
                     {ENGINES.map(eng => (
                       <button key={eng.id}
@@ -311,10 +311,10 @@ export default function HomePage() {
 
                 {/* Plan Selection */}
                 <div>
-                  <span className="label">選擇方案</span>
+                  <span className="label">Select Plan</span>
                   <div className="flex gap-3">
                     {[
-                      ['free', '免費', '10次/天', ''],
+                      ['free', 'Free', '10/day', ''],
                       ['starter', 'Starter', '100次/天', ''],
                       ['pro', 'Pro', '1000次/天', 'badge badge-cyan'],
                     ].map(([id, label, badge, badgeClass]) => (
@@ -334,13 +334,13 @@ export default function HomePage() {
 
                 {!user && (
                   <div className="toast info text-sm">
-                    <Lightbulb size={12} className="inline" /> 請先 <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登入</button> 後再使用 API 模式
+                    <Lightbulb size={12} className="inline" /> Please <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert('Please set Clerk API Key to enable login')}>login</button> first to use API mode
                   </div>
                 )}
 
                 {user && (
                   <div>
-                    <span className="label">API Key <span style={{ color: 'var(--text-3)', textTransform: 'none', fontWeight: 400 }}>（留空使用已儲存的）</span></span>
+                    <span className="label">API Key <span style={{ color: 'var(--text-3)', textTransform: 'none', fontWeight: 400 }}>(leave empty to use saved)</span></span>
                     <input
                       type="password"
                       value={apiKeyInput}
@@ -350,7 +350,7 @@ export default function HomePage() {
                       style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'inherit' }}
                     />
                     <p className="text-xs mt-2.5" style={{ color: 'var(--text-3)' }}>
-                      <Lightbulb size={12} className="inline" /> Key 僅儲存在瀏覽器本地，也可至 <Link href="/dashboard" className="font-semibold" style={{ color: 'var(--primary-light)' }}>控制台</Link> 安全儲存
+                      <Lightbulb size={12} className="inline" /> Key is only stored locally in your browser, or securely in the <Link href="/dashboard" className="font-semibold" style={{ color: 'var(--primary-light)' }}>Dashboard</Link>
                     </p>
                   </div>
                 )}
@@ -361,7 +361,7 @@ export default function HomePage() {
           {/* Text Input */}
           <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-3">
-              <span className="label mb-0"><Pen size={12} className="inline" /> 輸入文字</span>
+              <span className="label mb-0"><Pen size={12} className="inline" /> Enter Text</span>
               <div className="flex items-center gap-3">
                 <span className={`text-xs font-semibold ${charCount > 5000 ? 'text-red-400' : ''}`}
                   style={{ color: charCount > 5000 ? 'var(--danger)' : charCount > 4000 ? 'var(--warning)' : 'var(--text-3)' }}>
@@ -372,7 +372,7 @@ export default function HomePage() {
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder="在此輸入要轉換的文字，或上傳檔案..."
+              placeholder="Enter text to convert, or upload a file..."
               className="tts-textarea"
               style={{ fontSize: '0.95rem' }}
             />
@@ -384,7 +384,7 @@ export default function HomePage() {
 
           {/* Voice Selection */}
           <div className="glass-card p-6">
-            <span className="label"><Mic size={14} className="inline" /> 選擇聲音</span>
+            <span className="label"><Mic size={14} className="inline" /> Select Voice</span>
             <div className="grid grid-cols-3 gap-3">
               {VOICES.map(v => (
                 <button
@@ -415,7 +415,7 @@ export default function HomePage() {
 
           {/* Speed Settings */}
           <div className="glass-card p-6">
-            <span className="label"><Zap size={14} className="inline" /> 語速設定</span>
+            <span className="label"><Zap size={14} className="inline" /> Speed Setting</span>
             {/* Speed presets */}
             <div className="flex gap-2 flex-wrap mb-5">
               {SPEEDS.map(s => (
@@ -427,9 +427,9 @@ export default function HomePage() {
             {/* Fine-tune sliders */}
             <div className="grid grid-cols-3 gap-6">
               {[
-                { label: '語速', id: 'speed', min: 0.5, max: 2, step: 0.25, val: speed, display: speed + 'x' },
-                { label: '音調', id: 'pitch', min: -2, max: 2, step: 0.1, val: pitch, display: (pitch > 0 ? '+' : '') + pitch },
-                { label: '音量', id: 'volume', min: 0, max: 1, step: 0.1, val: volume, display: Math.round(volume * 100) + '%' },
+                { label: 'Speed', id: 'speed', min: 0.5, max: 2, step: 0.25, val: speed, display: speed + 'x' },
+                { label: 'Pitch', id: 'pitch', min: -2, max: 2, step: 0.1, val: pitch, display: (pitch > 0 ? '+' : '') + pitch },
+                { label: 'Volume', id: 'volume', min: 0, max: 1, step: 0.1, val: volume, display: Math.round(volume * 100) + '%' },
               ].map(s => (
                 <div key={s.id}>
                   <label className="text-xs font-bold block mb-2" style={{ color: 'var(--text-2)', letterSpacing: '0.05em' }}>{s.label}</label>
