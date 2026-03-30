@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useClerkUser } from '@/hooks/useClerk'
+import {
+  Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
+  FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download,
+  ScrollText, Lightbulb, Mic, Headphones, Volume, Rocket, Play,
+} from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,7 +96,7 @@ export default function HomePage() {
     utterance.onend = () => setProgress(100)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
-    showStatus('🎉 播放中 — 瀏覽器模式', 'success')
+    showStatus('<Sparkles size={12} className="inline" /> 播放中 — 瀏覽器模式', 'success')
   }
 
   const convertAPI = async () => {
@@ -122,7 +127,7 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
-    showStatus(`✨ 轉換完成 — ${engine.toUpperCase()} 引擎`, 'success')
+    showStatus(`<Sparkles size={12} className="inline" /> 轉換完成 — ${engine.toUpperCase()} 引擎`, 'success')
 
     const item = { text: text.slice(0, 50) + (text.length > 50 ? '…' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
     setHistory(prev => [item, ...prev.slice(0, 9)])
@@ -135,7 +140,7 @@ export default function HomePage() {
     a.href = audioUrl
     a.download = `tts-${Date.now()}.mp3`
     a.click()
-    showStatus('⬇️ 下載已開始', 'success')
+    showStatus('<Download size={14} className="inline" /> 下載已開始', 'success')
   }
 
   const VOICES = [
@@ -148,9 +153,9 @@ export default function HomePage() {
   ]
 
   const ENGINES = [
-    { id: 'openai', label: '🎙️ OpenAI', sub: 'gpt-4o-mini-tts', color: '#10b981', accent: '#059669' },
-    { id: 'elevenlabs', label: '🎧 ElevenLabs', sub: 'Multilingual v2', color: '#a855f7', accent: '#9333ea' },
-    { id: 'kokoro', label: '🔉 Kokoro', sub: 'inference.sh', color: '#f59e0b', accent: '#d97706' },
+    { id: 'openai', label: 'OpenAI', sub: 'gpt-4o-mini-tts', color: '#10b981', accent: '#059669' },
+    { id: 'elevenlabs', label: 'ElevenLabs', sub: 'Multilingual v2', color: '#a855f7', accent: '#9333ea' },
+    { id: 'kokoro', label: 'Kokoro', sub: 'inference.sh', color: '#f59e0b', accent: '#d97706' },
   ]
 
   const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
@@ -171,7 +176,7 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm animate-float"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', boxShadow: '0 4px 16px rgba(124,58,237,0.4)' }}>
-                🎙️
+                <Mic size={14} className="inline" />
               </div>
               <div>
                 <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>
@@ -181,11 +186,11 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/pricing" className="btn-secondary text-xs">💰 定價</Link>
+              <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>定價</Link>
               {isLoaded && (
                 user ? (
                   <>
-                    <Link href="/dashboard" className="btn-secondary text-xs">📊 控制台</Link>
+                    <Link href="/dashboard" className="btn-secondary text-xs"><BarChart3 size={12} className="inline mr-1"/>控制台</Link>
                     <button className="btn-ghost text-xs" onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登出</button>
                   </>
                 ) : (
@@ -222,9 +227,9 @@ export default function HomePage() {
             {/* Quick stats */}
             <div className="flex items-center justify-center gap-6 mt-6" style={{ animation: 'slideUp 0.5s ease 0.3s both' }}>
               {[
-                { icon: '🌍', label: '6+ 語言' },
-                { icon: '⚡', label: '即時生成' },
-                { icon: '🎵', label: 'MP3 輸出' },
+                { icon: <Globe size={12} className="inline" />, label: '6+ 語言' },
+                { icon: <Zap size={14} className="inline" />, label: '即時生成' },
+                { icon: <Music size={12} className="inline" />, label: 'MP3 輸出' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
                   <span>{item.icon}</span>
@@ -239,7 +244,7 @@ export default function HomePage() {
 
           {/* File Upload */}
           <div className="glass-card p-6">
-            <span className="label">📂 上傳檔案</span>
+            <span className="label"><FolderOpen size={14} className="inline" /> 上傳檔案</span>
             <div
               className={`dropzone ${isDragging ? 'dragging' : ''}`}
               onClick={() => document.getElementById('fileInput')?.click()}
@@ -251,7 +256,7 @@ export default function HomePage() {
                 if (file) handleFile(file)
               }}
             >
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', filter: 'drop-shadow(0 4px 8px rgba(124,58,237,0.3))' }}>📄</div>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', filter: 'drop-shadow(0 4px 8px rgba(124,58,237,0.3))' }}><FileText size={24} className="inline" /></div>
               <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-2)' }}>點擊或拖曳檔案至此</div>
               <div className="flex flex-wrap gap-1.5 justify-center">
                 {['.txt', '.srt', '.vtt', '.lrc', '.epub', '.pdf', '.docx'].map(f => (
@@ -266,14 +271,14 @@ export default function HomePage() {
 
           {/* Mode Toggle */}
           <div className="glass-card p-6">
-            <span className="label">🔊 轉換模式</span>
+            <span className="label"><Volume2 size={16} className="inline" /> 轉換模式</span>
             <div className="mode-pill mb-5">
               <button className={mode === 'browser' ? 'active' : ''} onClick={() => setMode('browser')}>
-                <span>🌐 瀏覽器模式</span>
+                <span><Globe size={14} className="inline" /> 瀏覽器模式</span>
                 <span className="sub">免費，無需登入</span>
               </button>
               <button className={mode === 'api' ? 'active' : ''} onClick={() => setMode('api')}>
-                <span>🤖 AI 雲端</span>
+                <span><Bot size={14} className="inline" /> AI 雲端</span>
                 <span className="sub">高品質，需登入</span>
               </button>
             </div>
@@ -329,7 +334,7 @@ export default function HomePage() {
 
                 {!user && (
                   <div className="toast info text-sm">
-                    💡 請先 <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登入</button> 後再使用 API 模式
+                    <Lightbulb size={12} className="inline" /> 請先 <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert('請設定 Clerk API Key 以啟用登入功能')}>登入</button> 後再使用 API 模式
                   </div>
                 )}
 
@@ -345,7 +350,7 @@ export default function HomePage() {
                       style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'inherit' }}
                     />
                     <p className="text-xs mt-2.5" style={{ color: 'var(--text-3)' }}>
-                      💡 Key 僅儲存在瀏覽器本地，也可至 <Link href="/dashboard" className="font-semibold" style={{ color: 'var(--primary-light)' }}>控制台</Link> 安全儲存
+                      <Lightbulb size={12} className="inline" /> Key 僅儲存在瀏覽器本地，也可至 <Link href="/dashboard" className="font-semibold" style={{ color: 'var(--primary-light)' }}>控制台</Link> 安全儲存
                     </p>
                   </div>
                 )}
@@ -356,7 +361,7 @@ export default function HomePage() {
           {/* Text Input */}
           <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-3">
-              <span className="label mb-0">✍️ 輸入文字</span>
+              <span className="label mb-0"><Pen size={12} className="inline" /> 輸入文字</span>
               <div className="flex items-center gap-3">
                 <span className={`text-xs font-semibold ${charCount > 5000 ? 'text-red-400' : ''}`}
                   style={{ color: charCount > 5000 ? 'var(--danger)' : charCount > 4000 ? 'var(--warning)' : 'var(--text-3)' }}>
@@ -372,14 +377,14 @@ export default function HomePage() {
               style={{ fontSize: '0.95rem' }}
             />
             <div className="flex gap-5 mt-3 text-xs" style={{ color: 'var(--text-3)' }}>
-              <span className="flex items-center gap-1">⏱ 預估時長 · <strong style={{ color: 'var(--text-2)' }}>{estimatedSeconds}s</strong></span>
-              <span className="flex items-center gap-1">📦 <strong style={{ color: 'var(--text-2)' }}>{chunks}</strong> 段落</span>
+              <span className="flex items-center gap-1"><Clock size={12} className="inline" /> 預估時長 · <strong style={{ color: 'var(--text-2)' }}>{estimatedSeconds}s</strong></span>
+              <span className="flex items-center gap-1"><Boxes size={12} className="inline" /> <strong style={{ color: 'var(--text-2)' }}>{chunks}</strong> 段落</span>
             </div>
           </div>
 
           {/* Voice Selection */}
           <div className="glass-card p-6">
-            <span className="label">🎙️ 選擇聲音</span>
+            <span className="label"><Mic size={14} className="inline" /> 選擇聲音</span>
             <div className="grid grid-cols-3 gap-3">
               {VOICES.map(v => (
                 <button
@@ -401,7 +406,7 @@ export default function HomePage() {
                   <button
                     className="preview-btn"
                     onClick={e => { e.stopPropagation(); previewVoice(v.code) }}>
-                    ▶ 試聽
+                    <Play size={12} className="inline" /> 試聽
                   </button>
                 </button>
               ))}
@@ -410,7 +415,7 @@ export default function HomePage() {
 
           {/* Speed Settings */}
           <div className="glass-card p-6">
-            <span className="label">⚡ 語速設定</span>
+            <span className="label"><Zap size={14} className="inline" /> 語速設定</span>
             {/* Speed presets */}
             <div className="flex gap-2 flex-wrap mb-5">
               {SPEEDS.map(s => (
@@ -452,10 +457,10 @@ export default function HomePage() {
             style={{ fontSize: '1.05rem', letterSpacing: '0.03em' }}
           >
             {isConverting ? (
-              <>⏳ 轉換中，請稍候…</>
+              <><Loader size={14} className="inline animate-spin" /> 轉換中，請稍候…</>
             ) : (
               <>
-                <span style={{ fontSize: '1.2em', lineHeight: 1 }}>🔊</span>
+                <span style={{ fontSize: '1.2em', lineHeight: 1 }}><Volume2 size={16} className="inline" /></span>
                 <span>開始轉換</span>
               </>
             )}
@@ -472,7 +477,7 @@ export default function HomePage() {
           {audioUrl && (
             <div className="glass-card p-6 animate-slide-up" style={{ borderColor: 'rgba(124,58,237,0.25)' }}>
               <div className="flex items-center gap-3 mb-5">
-                <div className="feat-icon">🎉</div>
+                <div className="feat-icon"><Sparkles size={16} className="inline" /></div>
                 <div>
                   <div className="font-black text-base" style={{ color: 'var(--text)' }}>轉換完成！</div>
                   <div className="text-xs" style={{ color: 'var(--text-3)' }}>MP3 音頻檔案已準備就緒</div>
@@ -483,7 +488,7 @@ export default function HomePage() {
               </div>
               <audio src={audioUrl} controls className="audio-player w-full mb-5" />
               <button onClick={downloadAudio} className="btn-primary !py-3 !px-8 !text-sm">
-                ⬇️ 下載音頻
+                <Download size={14} className="inline" /> 下載音頻
               </button>
             </div>
           )}
@@ -492,7 +497,7 @@ export default function HomePage() {
           {history.length > 0 && (
             <div className="glass-card p-6">
               <div className="flex justify-between items-center mb-4">
-                <span className="label mb-0">📜 轉換歷史</span>
+                <span className="label mb-0"><ScrollText size={12} className="inline" /> 轉換歷史</span>
                 <button onClick={() => setHistory([])} className="btn-ghost text-xs">清除</button>
               </div>
               <div className="space-y-2">

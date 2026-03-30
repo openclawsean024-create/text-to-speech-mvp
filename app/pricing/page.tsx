@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Mic, BarChart3, Globe, Zap, Flame, Rocket, MessageCircle, Star, CreditCard, Pencil, Mail, Lock, Music } from 'lucide-react'
 
 export default function PricingPage() {
   return (
@@ -9,14 +10,14 @@ export default function PricingPage() {
       <header className="header-glass sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-5 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>🎙️</div>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}><Mic size={14} className="inline" /></div>
             <div>
               <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>文字轉語音 <span style={{ color: 'var(--primary)', fontSize: '0.7em' }}>v2.0</span></h1>
               <p className="text-xs" style={{ color: 'var(--text-3)' }}>多引擎 AI TTS</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="btn-secondary text-xs">📊 控制台</Link>
+            <Link href="/dashboard" className="btn-secondary text-xs"><BarChart3 size={12} className="inline" /> 控制台</Link>
             <Link href="/" className="btn-ghost text-xs">← 開始使用</Link>
           </div>
         </div>
@@ -26,7 +27,7 @@ export default function PricingPage() {
 
         {/* Header */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-1.5 badge mb-4">💰 簡單透明的定價</div>
+          <div className="inline-flex items-center gap-1.5 badge mb-4"><CreditCard size={12} className="inline" /> 簡單透明的定價</div>
           <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--text)' }}>選擇適合你的方案</h2>
           <p className="text-sm" style={{ color: 'var(--text-2)' }}>從免費開始，隨需求成長升級。所有方案均無隱藏費用。</p>
         </div>
@@ -35,7 +36,7 @@ export default function PricingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Free */}
           <div className="plan-card">
-            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}>🌐 免費方案</div>
+            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}><Globe size={14} className="inline" /> 免費方案</div>
             <div className="text-xs mb-4" style={{ color: 'var(--text-3)' }}>適合體驗與輕量使用</div>
             <div className="mb-5">
               <span className="text-4xl font-bold" style={{ color: '#10b981' }}>NT$0</span>
@@ -67,7 +68,7 @@ export default function PricingPage() {
 
           {/* Starter */}
           <div className="plan-card">
-            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}>⚡ Starter</div>
+            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}><Zap size={12} className="inline" /> Starter</div>
             <div className="text-xs mb-4" style={{ color: 'var(--text-3)' }}>適合個人創作者與小專案</div>
             <div className="mb-5">
               <span className="text-4xl font-bold" style={{ color: 'var(--text)' }}>NT$199</span>
@@ -97,9 +98,9 @@ export default function PricingPage() {
           {/* Pro */}
           <div className="plan-card featured">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-              🔥 最受歡迎
+              <Flame size={12} className="inline" /> 最受歡迎
             </div>
-            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--primary)' }}>🚀 Pro</div>
+            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--primary)' }}><Rocket size={14} className="inline" /> Pro</div>
             <div className="text-xs mb-4" style={{ color: 'var(--text-3)' }}>適合專業內容創作與商業用途</div>
             <div className="mb-5">
               <span className="text-4xl font-bold" style={{ color: 'var(--text)' }}>NT$599</span>
@@ -128,16 +129,16 @@ export default function PricingPage() {
 
         {/* Engine Comparison */}
         <div>
-          <h2 className="text-xl font-bold mb-5 text-center" style={{ color: 'var(--text)' }}>🎙️ 引擎功能比較</h2>
+          <h2 className="text-xl font-bold mb-5 text-center" style={{ color: 'var(--text)' }}><Mic size={14} className="inline" /> 引擎功能比較</h2>
           <div className="glass-card overflow-hidden !p-0">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
                   <th className="text-left p-4 font-semibold text-xs" style={{ color: 'var(--text-2)' }}>功能</th>
-                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>🌐 瀏覽器</th>
-                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>🎙️ OpenAI</th>
-                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>🎧 ElevenLabs</th>
-                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>🔉 Kokoro</th>
+                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}><Globe size={14} className="inline" /> 瀏覽器</th>
+                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}><Mic size={14} className="inline" /> OpenAI</th>
+                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>HeadphonesElevenLabs</th>
+                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>VolumeKokoro</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,7 +167,7 @@ export default function PricingPage() {
 
         {/* FAQ */}
         <div>
-          <h2 className="text-xl font-bold mb-5 text-center" style={{ color: 'var(--text)' }}>💬 常見問題</h2>
+          <h2 className="text-xl font-bold mb-5 text-center" style={{ color: 'var(--text)' }}><MessageCircle size={14} className="inline" /> 常見問題</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
               ['免費方案會過期嗎？', '不會。免費方案可以永久使用，每天 10 次轉換，無時間限制。'],
@@ -195,7 +196,7 @@ export default function PricingPage() {
               需要高品質配音？選擇適合你的方案。
             </p>
             <Link href="/" className="inline-block px-8 py-3 rounded-full font-bold text-sm hover:scale-105 transition-transform" style={{ background: 'white', color: '#4f46e5' }}>
-              🚀 免費開始使用
+              <Rocket size={14} className="inline" /> 免費開始使用
             </Link>
           </div>
         </div>
