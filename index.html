@@ -105,19 +105,19 @@
     <div class="container">
         <div class="header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
             <div>
-                <h1>🎤 文字轉語音 v2.0</h1>
+                <h1>Text to Speech v2.0</h1>
                 <p>支援多引擎 AI 文字轉語音</p>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <span class="version">v2.0 - 多引擎後端</span>
-                <a href="pricing.html" style="font-size:12px;padding:4px 12px;background:rgba(0,113,227,0.1);color:var(--primary);border-radius:20px;text-decoration:none;font-weight:600;" target="_blank">💰 定價</a>
+                <a href="pricing.html" style="font-size:12px;padding:4px 12px;background:rgba(0,113,227,0.1);color:var(--primary);border-radius:20px;text-decoration:none;font-weight:600;" target="_blank">Pricing</a>
             </div>
         </div>
         <div class="card">
             <div style="font-weight:600;font-size:14px;margin-bottom:12px;">📁 上傳檔案</div>
             <div class="upload-zone" id="uploadZone">
                 <input type="file" id="fileInput" accept=".txt,.srt,.vtt,.lrc,.epub,.mobi,.azw3,.pdf,.docx" style="display:none;">
-                <div style="font-size:32px;margin-bottom:8px;">📄</div>
+                <div style="font-size:32px;margin-bottom:8px;">Text</div>
                 <div style="color:var(--text2);">點擊或拖曳檔案至此</div>
                 <div class="upload-formats">
                     <span class="format-tag">.txt</span>
@@ -135,24 +135,24 @@
             <div id="fileParseStatus" style="margin-top:4px;font-size:11px;color:var(--text2);display:none;"></div>
         </div>
         <div class="card">
-            <div style="font-weight:600;font-size:14px;margin-bottom:12px;">🔊 轉換模式</div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:12px;">Convert Mode</div>
             <div class="mode-toggle">
-                <button class="mode-btn active" id="modeBrowser" onclick="setMode('browser')">🌐 瀏覽器內建<br><span style="font-size:11px;color:var(--text2)">免費，立即使用</span></button>
-                <button class="mode-btn" id="modeAPI" onclick="setMode('api')">🤖 AI 雲端引擎<br><span style="font-size:11px;color:var(--text2)">高品質，需設定 Key</span></button>
+                <button class="mode-btn active" id="modeBrowser" onclick="setMode('browser')">Browser TTS<br><span style="font-size:11px;color:var(--text2)">Free, instant</span></button>
+                <button class="mode-btn" id="modeAPI" onclick="setMode('api')">AI Cloud Engine<br><span style="font-size:11px;color:var(--text2)">High quality, requires API Key</span></button>
             </div>
             <div id="apiKeySection" style="display:none;">
                 <div style="font-weight:600;font-size:13px;margin-bottom:8px;">選擇 TTS 引擎</div>
                 <div class="engine-selector">
                     <button class="engine-btn active" id="engOpenAI" onclick="setEngine('openai')">
-                        <div class="eng-name">🎙️ OpenAI</div>
+                        <div class="eng-name">OpenAI</div>
                         <div class="eng-tag">gpt-4o-mini-tts</div>
                     </button>
                     <button class="engine-btn" id="engElevenLabs" onclick="setEngine('elevenlabs')">
-                        <div class="eng-name">🎧 ElevenLabs</div>
+                        <div class="eng-name">ElevenLabs</div>
                         <div class="eng-tag">Multilingual v2</div>
                     </button>
                     <button class="engine-btn" id="engKokoro" onclick="setEngine('kokoro')">
-                        <div class="eng-name">🔉 Kokoro</div>
+                        <div class="eng-name">Kokoro</div>
                         <div class="eng-tag">inference.sh</div>
                     </button>
                 </div>
@@ -209,7 +209,7 @@
                 <div class="setting"><label>音量</label><input type="range" id="volume" min="0" max="1" step="0.1" value="1" oninput="updateSetting('volume')"><div class="val" id="volumeVal">100%</div></div>
             </div>
         </div>
-        <button class="btn btn-primary" id="convertBtn" onclick="convertText()">🔊 開始轉換</button>
+        <button class="btn btn-primary" id="convertBtn" onclick="convertText()">Start Convert</button>
         <div class="status-msg info" id="statusMsg"></div>
         <div class="result" id="result"><div class="card"><div class="progress-container"><div style="font-weight:600;margin-bottom:8px;">🎉 轉換完成！</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="progress-time"><span id="currentTime">0:00</span><span id="totalTime">--:--</span></div></div><div class="audio-player"><audio id="audioPlayer" controls></audio></div><button class="download-btn" id="downloadBtn" onclick="downloadAudio()" disabled>⬇️ 下載音頻</button></div></div>
         <div class="card history"><div class="history-title">轉換歷史<button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">清除</button></div><div class="history-list" id="historyList"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div></div></div>
@@ -370,7 +370,7 @@
             });
             if (mode === 'browser' && !document.querySelector(`.voice-item[data-voice="${selectedVoice}"]`)) selectedVoice = 'zh-CN';
             updateVoiceSelection();
-            showStatus(mode === 'browser' ? '🌐 瀏覽器內建語音（免費）' : `🤖 使用 ${currentEngine} 引擎`, 'info');
+            showStatus(mode === 'browser' ? 'Browser TTS (Free)' : `Using ${currentEngine} Engine`, 'info');
             persistSettings();
         }
 
@@ -444,7 +444,7 @@
                 document.getElementById('textInput').value = text;
                 document.getElementById('charCount').textContent = text.length;
                 const nameEl = document.getElementById('fileName');
-                nameEl.textContent = '📄 ' + file.name + '（' + text.length + ' 字）';
+                nameEl.textContent = 'Document ' + file.name + '（' + text.length + ' 字）';
                 nameEl.style.display = 'block';
                 currentFileName = file.name;
                 refreshPreview();
@@ -553,7 +553,7 @@
             }
             isConverting = false;
             document.getElementById('convertBtn').disabled = false;
-            document.getElementById('convertBtn').textContent = '🔊 開始轉換';
+            document.getElementById('convertBtn').textContent = 'Start Convert';
             document.getElementById('loadingOverlay').classList.remove('show');
         }
 
