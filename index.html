@@ -176,7 +176,7 @@
         </div>
         <div class="card">
             <div class="char-count"><span id="charCount">0</span>/5000 字</div>
-            <textarea id="textInput" placeholder="請輸入要轉換的文字，或上傳檔案..."></textarea>
+            <textarea id="textInput" placeholder="Enter text to convert, or upload a file..."></textarea>
             <div class="meta-row"><span id="estimatedDuration">預估時長：0 秒</span><span id="chunkCount">分段：0</span></div>
             <div class="chunk-box" id="chunkPreview"><div style="font-size:12px;color:var(--text2);">尚未產生段落預覽</div></div>
         </div>
@@ -211,12 +211,12 @@
         </div>
         <button class="btn btn-primary" id="convertBtn" onclick="convertText()">Start Convert</button>
         <div class="status-msg info" id="statusMsg"></div>
-        <div class="result" id="result"><div class="card"><div class="progress-container"><div style="font-weight:600;margin-bottom:8px;">轉換完成！</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="progress-time"><span id="currentTime">0:00</span><span id="totalTime">--:--</span></div></div><div class="audio-player"><audio id="audioPlayer" controls></audio></div><button class="download-btn" id="downloadBtn" onclick="downloadAudio()" disabled>⬇️ 下載音頻</button></div></div>
-        <div class="card history"><div class="history-title">轉換歷史<button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">清除</button></div><div class="history-list" id="historyList"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div></div></div>
+        <div class="result" id="result"><div class="card"><div class="progress-container"><div style="font-weight:600;margin-bottom:8px;">✓ Conversion complete!</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="progress-time"><span id="currentTime">0:00</span><span id="totalTime">--:--</span></div></div><div class="audio-player"><audio id="audioPlayer" controls></audio></div><button class="download-btn" id="downloadBtn" onclick="downloadAudio()" disabled>↓ Download Audio</button></div></div>
+        <div class="card history"><div class="history-title">Conversion History<button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">Clear</button></div><div class="history-list" id="historyList"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">No conversion history</div></div></div>
     </div>
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
-        <div class="loading-text" id="loadingText">⏳ 正在轉換...</div>
+        <div class="loading-text" id="loadingText">⏳ Converting...</div>
         <div class="loading-sub" id="loadingSub">使用 <span id="loadingEngine">—</span> 引擎</div>
     </div>
     <script>
@@ -418,22 +418,22 @@
                     }
                     if (ext === '.lrc') text = text.replace(/\[\d{2}:\d{2}\.\d{2}\]/g, '');
                 } else if (ext === '.pdf') {
-                    statusEl.textContent = '⏳ 正在解析 PDF...';
+                    statusEl.textContent = '⏳ Parsing PDF...';
                     statusEl.style.display = 'block';
                     text = await extractPDFText(file);
                     statusEl.style.display = 'none';
                 } else if (ext === '.docx') {
-                    statusEl.textContent = '⏳ 正在解析 DOCX...';
+                    statusEl.textContent = '⏳ Parsing DOCX...';
                     statusEl.style.display = 'block';
                     text = await extractDocxText(file);
                     statusEl.style.display = 'none';
                 } else if (ext === '.epub') {
-                    statusEl.textContent = '⏳ 正在解析 EPUB...';
+                    statusEl.textContent = '⏳ Parsing EPUB...';
                     statusEl.style.display = 'block';
                     text = await extractEpubText(file);
                     statusEl.style.display = 'none';
                 } else if (ext === '.mobi' || ext === '.azw3') {
-                    showStatus(`⚠️ ${ext} 格式需要後端處理。請轉換為 .epub、.pdf 或 .docx 再上傳。`, 'info');
+                    showStatus(`ℹ️ ${ext} format requires backend processing. Please convert to .epub, .pdf, or .docx first.`, 'info');
                     return;
                 } else {
                     showStatus('不支援的檔案格式', 'error');
@@ -497,7 +497,7 @@
                 if (!text.trim()) throw new Error('無內容');
                 return text;
             } catch(e) {
-                throw new Error('EPUB 解析失敗（可能格式不相容）。建議轉換為 .docx 或 .pdf 再試。');
+                throw new Error('EPUB parsing failed (possibly incompatible format). Try converting to .docx or .pdf.');
             }
         }
 
@@ -526,7 +526,7 @@
             dlBtn.title = '';
             isConverting = true;
             document.getElementById('convertBtn').disabled = true;
-            document.getElementById('convertBtn').textContent = '⏳ 轉換中...';
+            document.getElementById('convertBtn').textContent = '⏳ Converting...';
             document.getElementById('loadingOverlay').classList.add('show');
             document.getElementById('loadingEngine').textContent = currentMode === 'browser' ? 'Web Speech API' : (currentEngine.charAt(0).toUpperCase() + currentEngine.slice(1));
             addToHistory(text);
@@ -548,7 +548,7 @@
                 } else if (userMsg.includes('500') || userMsg.includes('internal')) {
                     userMsg = '後端伺服器錯誤，請稍後再試';
                 }
-                showStatus('❌ 轉換失敗：' + userMsg, 'error');
+                showStatus('✗ Conversion failed: ' + userMsg, 'error');
                 document.getElementById('loadingOverlay').classList.remove('show');
             }
             isConverting = false;
@@ -624,7 +624,7 @@
                 document.getElementById('downloadBtn').disabled = false;
                 document.getElementById('downloadBtn').title = '';
             }
-            showStatus(`✅ 轉換完成！(${currentEngine} 引擎)`, 'success');
+            showStatus(`✓ Conversion complete! (${currentEngine} engine)`, 'success');
         }
 
         function loadVoices() { 
@@ -697,14 +697,14 @@
             document.getElementById('totalTime').textContent = '~' + formatTime(utterance.text.length / 6 / parseFloat(document.getElementById('speed').value));
             // Browser mode does not produce a downloadable blob — always disable
             document.getElementById('downloadBtn').disabled = true;
-            document.getElementById('downloadBtn').title = '瀏覽器模式僅支援線上播放，請切換至 OpenAI / ElevenLabs / Kokoro 引擎以下載音檔';
+            document.getElementById('downloadBtn').title = 'Browser mode supports online playback only. Switch to OpenAI / ElevenLabs / Kokoro engine to download audio.';
             document.getElementById('downloadBtn').style.opacity = '0.5';
             document.getElementById('downloadBtn').style.cursor = 'not-allowed';
-            showStatus('✅ 播放中...（瀏覽器模式僅支援線上播放，建議切換至 OpenAI/ElevenLabs 可下載音檔）', 'success');
+            showStatus('▶ Playing... (Browser mode supports online playback only. Switch to OpenAI/ElevenLabs to download audio.)', 'success');
         }
 
         function downloadAudio() {
-            if (!currentAudioBlob) { showStatus('沒有可下載的音頻', 'error'); return; }
+            if (!currentAudioBlob) { showStatus('No audio to download', 'error'); return; }
             const ext = currentAudioBlob.type.includes('mpeg') || currentAudioBlob.type.includes('mp3') ? 'mp3' : 'wav';
             const url = URL.createObjectURL(currentAudioBlob);
             const a = document.createElement('a');
@@ -714,7 +714,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showStatus('⬇️ 下載開始！', 'success');
+            showStatus('↓ Download started!', 'success');
         }
 
         function formatTime(seconds) {
@@ -733,7 +733,7 @@
 
         function renderHistory() {
             const list = document.getElementById('historyList');
-            if (history.length === 0) { list.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">尚無轉換記錄</div>'; return; }
+            if (history.length === 0) { list.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">No conversion history</div>'; return; }
             list.innerHTML = history.map((item, idx) => {
                 const isApi = item.mode === 'api';
                 const badge = isApi
@@ -763,11 +763,11 @@
                 if (voiceEl) selectVoice(voiceEl);
             }
             refreshPreview();
-            showStatus(`已載入歷史記錄（${item.time}）`, 'info');
+            showStatus(`History loaded (${item.time})`, 'info');
         }
 
         function clearHistory() {
-            if (confirm('確定清除所有歷史記錄？')) { history = []; localStorage.removeItem('ttsHistory'); renderHistory(); }
+            if (confirm('Clear all history?')) { history = []; localStorage.removeItem('ttsHistory'); renderHistory(); }
         }
 
         renderHistory(); refreshPreview();
