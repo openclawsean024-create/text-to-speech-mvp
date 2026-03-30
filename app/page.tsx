@@ -96,7 +96,7 @@ export default function HomePage() {
     utterance.onend = () => setProgress(100)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
-    showStatus('<Sparkles size={12} className="inline" /> 播放中 — 瀏覽器模式', 'success')
+    showStatus('播放中 — 瀏覽器模式', 'success')
   }
 
   const convertAPI = async () => {
@@ -127,7 +127,7 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
-    showStatus(`<Sparkles size={12} className="inline" /> 轉換完成 — ${engine.toUpperCase()} 引擎`, 'success')
+    showStatus(`轉換完成 — ${engine.toUpperCase()} 引擎`, 'success')
 
     const item = { text: text.slice(0, 50) + (text.length > 50 ? '…' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
     setHistory(prev => [item, ...prev.slice(0, 9)])
@@ -140,7 +140,7 @@ export default function HomePage() {
     a.href = audioUrl
     a.download = `tts-${Date.now()}.mp3`
     a.click()
-    showStatus('<Download size={14} className="inline" /> 下載已開始', 'success')
+    showStatus('下載已開始', 'success')
   }
 
   const VOICES = [

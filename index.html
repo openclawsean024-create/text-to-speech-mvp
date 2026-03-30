@@ -183,12 +183,12 @@
         <div class="card">
             <div style="font-weight:600;font-size:14px;margin-bottom:12px;">選擇聲音</div>
             <div class="voice-grid" id="voiceGrid">
-                <div class="voice-item selected" data-voice="zh-CN" data-mode="browser" onclick="selectVoice(this)"><div class="name">曉曉</div><div class="lang">中文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('zh-CN')">▶ 試聽</button></div>
-                <div class="voice-item" data-voice="zh-TW" data-mode="browser" onclick="selectVoice(this)"><div class="name">雲希</div><div class="lang">中文-男</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('zh-TW')">▶ 試聽</button></div>
-                <div class="voice-item" data-voice="en-US" data-mode="browser" onclick="selectVoice(this)"><div class="name">Jenny</div><div class="lang">英文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('en-US')">▶ 試聽</button></div>
-                <div class="voice-item" data-voice="ja-JP" data-mode="browser" onclick="selectVoice(this)"><div class="name">七海</div><div class="lang">日文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('ja-JP')">▶ 試聽</button></div>
-                <div class="voice-item" data-voice="ko-KR" data-mode="browser" onclick="selectVoice(this)"><div class="name">SunHi</div><div class="lang">韓文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('ko-KR')">▶ 試聽</button></div>
-                <div class="voice-item" data-voice="en-US-male" data-mode="browser" onclick="selectVoice(this)"><div class="name">James</div><div class="lang">英文-男</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('en-US-male')">▶ 試聽</button></div>
+                <div class="voice-item selected" data-voice="zh-CN" data-mode="browser" onclick="selectVoice(this)"><div class="name">曉曉</div><div class="lang">中文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('zh-CN')">Play</button></div>
+                <div class="voice-item" data-voice="zh-TW" data-mode="browser" onclick="selectVoice(this)"><div class="name">雲希</div><div class="lang">中文-男</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('zh-TW')">Play</button></div>
+                <div class="voice-item" data-voice="en-US" data-mode="browser" onclick="selectVoice(this)"><div class="name">Jenny</div><div class="lang">英文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('en-US')">Play</button></div>
+                <div class="voice-item" data-voice="ja-JP" data-mode="browser" onclick="selectVoice(this)"><div class="name">七海</div><div class="lang">日文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('ja-JP')">Play</button></div>
+                <div class="voice-item" data-voice="ko-KR" data-mode="browser" onclick="selectVoice(this)"><div class="name">SunHi</div><div class="lang">韓文-女</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('ko-KR')">Play</button></div>
+                <div class="voice-item" data-voice="en-US-male" data-mode="browser" onclick="selectVoice(this)"><div class="name">James</div><div class="lang">英文-男</div><button class="preview-btn" onclick="event.stopPropagation();previewVoice('en-US-male')">Play</button></div>
             </div>
             <div id="engineVoicesNote" class="api-note" style="margin-top:12px;display:none;">
                 <span id="engineVoicesText"></span>
@@ -211,12 +211,12 @@
         </div>
         <button class="btn btn-primary" id="convertBtn" onclick="convertText()">Start Convert</button>
         <div class="status-msg info" id="statusMsg"></div>
-        <div class="result" id="result"><div class="card"><div class="progress-container"><div style="font-weight:600;margin-bottom:8px;">✓ Conversion complete!</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="progress-time"><span id="currentTime">0:00</span><span id="totalTime">--:--</span></div></div><div class="audio-player"><audio id="audioPlayer" controls></audio></div><button class="download-btn" id="downloadBtn" onclick="downloadAudio()" disabled>↓ Download Audio</button></div></div>
+        <div class="result" id="result"><div class="card"><div class="progress-container"><div style="font-weight:600;margin-bottom:8px;">Conversion complete!</div><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="progress-time"><span id="currentTime">0:00</span><span id="totalTime">--:--</span></div></div><div class="audio-player"><audio id="audioPlayer" controls></audio></div><button class="download-btn" id="downloadBtn" onclick="downloadAudio()" disabled>Download Audio</button></div></div>
         <div class="card history"><div class="history-title">Conversion History<button onclick="clearHistory()" style="font-size:12px;padding:4px 10px;background:var(--bg);border:none;border-radius:6px;cursor:pointer;">Clear</button></div><div class="history-list" id="historyList"><div style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">No conversion history</div></div></div>
     </div>
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
-        <div class="loading-text" id="loadingText">⏳ Converting...</div>
+        <div class="loading-text" id="loadingText">Converting...</div>
         <div class="loading-sub" id="loadingSub">使用 <span id="loadingEngine">—</span> 引擎</div>
     </div>
     <script>
@@ -418,22 +418,22 @@
                     }
                     if (ext === '.lrc') text = text.replace(/\[\d{2}:\d{2}\.\d{2}\]/g, '');
                 } else if (ext === '.pdf') {
-                    statusEl.textContent = '⏳ Parsing PDF...';
+                    statusEl.textContent = 'Parsing PDF...';
                     statusEl.style.display = 'block';
                     text = await extractPDFText(file);
                     statusEl.style.display = 'none';
                 } else if (ext === '.docx') {
-                    statusEl.textContent = '⏳ Parsing DOCX...';
+                    statusEl.textContent = 'Parsing DOCX...';
                     statusEl.style.display = 'block';
                     text = await extractDocxText(file);
                     statusEl.style.display = 'none';
                 } else if (ext === '.epub') {
-                    statusEl.textContent = '⏳ Parsing EPUB...';
+                    statusEl.textContent = 'Parsing EPUB...';
                     statusEl.style.display = 'block';
                     text = await extractEpubText(file);
                     statusEl.style.display = 'none';
                 } else if (ext === '.mobi' || ext === '.azw3') {
-                    showStatus(`ℹ️ ${ext} format requires backend processing. Please convert to .epub, .pdf, or .docx first.`, 'info');
+                    showStatus(`${ext} format requires backend processing. Please convert to .epub, .pdf, or .docx first.`, 'info');
                     return;
                 } else {
                     showStatus('不支援的檔案格式', 'error');
@@ -526,7 +526,7 @@
             dlBtn.title = '';
             isConverting = true;
             document.getElementById('convertBtn').disabled = true;
-            document.getElementById('convertBtn').textContent = '⏳ Converting...';
+            document.getElementById('convertBtn').textContent = 'Converting...';
             document.getElementById('loadingOverlay').classList.add('show');
             document.getElementById('loadingEngine').textContent = currentMode === 'browser' ? 'Web Speech API' : (currentEngine.charAt(0).toUpperCase() + currentEngine.slice(1));
             addToHistory(text);
@@ -548,7 +548,7 @@
                 } else if (userMsg.includes('500') || userMsg.includes('internal')) {
                     userMsg = '後端伺服器錯誤，請稍後再試';
                 }
-                showStatus('✗ Conversion failed: ' + userMsg, 'error');
+                showStatus('Error: ' + userMsg, 'error');
                 document.getElementById('loadingOverlay').classList.remove('show');
             }
             isConverting = false;
@@ -624,7 +624,7 @@
                 document.getElementById('downloadBtn').disabled = false;
                 document.getElementById('downloadBtn').title = '';
             }
-            showStatus(`✓ Conversion complete! (${currentEngine} engine)`, 'success');
+            showStatus(`Conversion complete! (${currentEngine} engine)`, 'success');
         }
 
         function loadVoices() { 
@@ -700,7 +700,7 @@
             document.getElementById('downloadBtn').title = 'Browser mode supports online playback only. Switch to OpenAI / ElevenLabs / Kokoro engine to download audio.';
             document.getElementById('downloadBtn').style.opacity = '0.5';
             document.getElementById('downloadBtn').style.cursor = 'not-allowed';
-            showStatus('▶ Playing... (Browser mode supports online playback only. Switch to OpenAI/ElevenLabs to download audio.)', 'success');
+            showStatus('Playing... (Browser mode supports online playback only. Switch to OpenAI/ElevenLabs to download audio.)', 'success');
         }
 
         function downloadAudio() {
@@ -714,7 +714,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showStatus('↓ Download started!', 'success');
+            showStatus('Download started!', 'success');
         }
 
         function formatTime(seconds) {
