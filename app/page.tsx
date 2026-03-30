@@ -127,7 +127,7 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
-    showStatus(`轉換完成 — ${engine.toUpperCase()} 引擎`, 'success')
+    showStatus(`Conversion complete — ${engine.toUpperCase()} engine`, 'success')
 
     const item = { text: text.slice(0, 50) + (text.length > 50 ? '…' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
     setHistory(prev => [item, ...prev.slice(0, 9)])
@@ -457,11 +457,11 @@ export default function HomePage() {
             style={{ fontSize: '1.05rem', letterSpacing: '0.03em' }}
           >
             {isConverting ? (
-              <><Loader size={14} className="inline animate-spin" /> 轉換中，請稍候…</>
+              <><Loader size={14} className="inline animate-spin" /> Converting, please wait...</>
             ) : (
               <>
                 <span style={{ fontSize: '1.2em', lineHeight: 1 }}><Volume2 size={16} className="inline" /></span>
-                <span>開始轉換</span>
+                <span>Start Conversion</span>
               </>
             )}
           </button>
@@ -479,8 +479,8 @@ export default function HomePage() {
               <div className="flex items-center gap-3 mb-5">
                 <div className="feat-icon"><Sparkles size={16} className="inline" /></div>
                 <div>
-                  <div className="font-black text-base" style={{ color: 'var(--text)' }}>轉換完成！</div>
-                  <div className="text-xs" style={{ color: 'var(--text-3)' }}>MP3 音頻檔案已準備就緒</div>
+                  <div className="font-black text-base" style={{ color: 'var(--text)' }}>Conversion complete!</div>
+                  <div className="text-xs" style={{ color: 'var(--text-3)' }}>MP3 audio file is ready</div>
                 </div>
               </div>
               <div className="progress-bar mb-5">
@@ -488,7 +488,7 @@ export default function HomePage() {
               </div>
               <audio src={audioUrl} controls className="audio-player w-full mb-5" />
               <button onClick={downloadAudio} className="btn-primary !py-3 !px-8 !text-sm">
-                <Download size={14} className="inline" /> 下載音頻
+                <Download size={14} className="inline" /> Download Audio
               </button>
             </div>
           )}
@@ -497,8 +497,8 @@ export default function HomePage() {
           {history.length > 0 && (
             <div className="glass-card p-6">
               <div className="flex justify-between items-center mb-4">
-                <span className="label mb-0"><ScrollText size={12} className="inline" /> 轉換歷史</span>
-                <button onClick={() => setHistory([])} className="btn-ghost text-xs">清除</button>
+                <span className="label mb-0"><ScrollText size={12} className="inline" /> Conversion History</span>
+                <button onClick={() => setHistory([])} className="btn-ghost text-xs">Clear</button>
               </div>
               <div className="space-y-2">
                 {history.map((item, i) => (
@@ -520,7 +520,7 @@ export default function HomePage() {
           {/* Footer */}
           <div className="text-center pt-4 pb-8">
             <p className="text-xs" style={{ color: 'var(--text-3)' }}>
-              由 AI 驅動 · OpenAI · ElevenLabs · Kokoro
+              Powered by AI · OpenAI · ElevenLabs · Kokoro
             </p>
           </div>
         </main>
