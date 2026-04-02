@@ -35,6 +35,31 @@ export default function HomePage() {
     setTimeout(() => setStatus(null), 5000)
   }
 
+  const handleFile = async (file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    const allowed = ['txt', 'srt', 'vtt', 'lrc', 'epub', 'pdf', 'docx']
+    if (!allowed.includes(ext)) {
+      showStatus(`不支援的格式: .${ext}`, 'error')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showStatus('檔案超過 10MB 限制', 'error')
+      return
+    }
+    showStatus('正在提取文字，請稍候...', 'info')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/extract-text', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Extraction failed')
+      setText(data.text)
+      showStatus(`已提取 ${data.charCount.toLocaleString()} 字元：${data.filename}`, 'success')
+    } catch (e: unknown) {
+      showStatus('檔案讀取失敗: ' + (e instanceof Error ? e.message : String(e)), 'error')
+    }
+  }
+
   const charCount = text.length
   const estimatedSeconds = Math.max(1, Math.round(charCount / 6 / speed))
   const chunks = Math.max(1, Math.ceil(charCount / 500))
@@ -527,10 +552,6 @@ export default function HomePage() {
       </div>
     </div>
   )
-}
-
-function handleFile(file: File) {
-  // File handling is done inline in onChange
 }
 
 function previewVoice(voiceCode: string) {
