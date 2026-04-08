@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useClerkUser } from '@/hooks/useClerk'
+import { useLocale } from '@/contexts/LangContext'
 import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
   FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download,
@@ -14,6 +15,7 @@ export const dynamic = 'force-dynamic'
 export default function HomePage() {
   const { user, isLoaded } = useClerkUser()
 
+  const { locale, setLocale, t } = useLocale()
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
   const [plan, setPlan] = useState('free')
@@ -39,14 +41,14 @@ export default function HomePage() {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
     const allowed = ['txt', 'srt', 'vtt', 'lrc', 'epub', 'pdf', 'docx']
     if (!allowed.includes(ext)) {
-      showStatus(`不支援的格式: .${ext}`, 'error')
+      showStatus(t('status.unsupported').replace('{ext}', ext), 'error')
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      showStatus('檔案超過 10MB 限制', 'error')
+      showStatus(t('status.fileLarge'), 'error')
       return
     }
-    showStatus('正在提取文字，請稍候...', 'info')
+    showStatus(t('status.extracting'), 'info')
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -54,9 +56,9 @@ export default function HomePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Extraction failed')
       setText(data.text)
-      showStatus(`已提取 ${data.charCount.toLocaleString()} 字元：${data.filename}`, 'success')
+      showStatus(t('status.extracted').replace('{count}', data.charCount.toLocaleString()).replace('{filename}', data.filename), 'success')
     } catch (e: unknown) {
-      showStatus('檔案讀取失敗: ' + (e instanceof Error ? e.message : String(e)), 'error')
+      showStatus(`${t('status.fileError')}: ` + (e instanceof Error ? e.message : String(e)), 'error')
     }
   }
 
@@ -84,9 +86,9 @@ export default function HomePage() {
   }, [user, engine, plan, voice])
 
   const handleConvert = async () => {
-    if (!text.trim()) { showStatus('Please enter text to convert', 'error'); return }
-    if (text.length > 5000) { showStatus('Text cannot exceed 5000 characters', 'error'); return }
-    if (mode === 'api' && !user) { showStatus('Please login first to use API mode', 'error'); return }
+    if (!text.trim()) { showStatus(t('status.noText'), 'error'); return }
+    if (text.length > 5000) { showStatus(t('status.textTooLong'), 'error'); return }
+    if (mode === 'api' && !user) { showStatus(t('status.loginRequired'), 'error'); return }
 
     setIsConverting(true)
     setProgress(0)
@@ -100,7 +102,7 @@ export default function HomePage() {
         await convertAPI()
       }
     } catch (e: unknown) {
-      showStatus('Conversion failed: ' + (e instanceof Error ? e.message : String(e)), 'error')
+      showStatus(`${t('status.error')}: ` + (e instanceof Error ? e.message : String(e)), 'error')
     }
     setIsConverting(false)
   }
@@ -121,11 +123,11 @@ export default function HomePage() {
     utterance.onend = () => setProgress(100)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
-    showStatus('Playing... browser mode', 'success')
+    showStatus(t('status.playing'), 'success')
   }
 
   const convertAPI = async () => {
-    if (!user) { showStatus('Please login', 'error'); return }
+    if (!user) { showStatus(t('status.loginRequired'), 'error'); return }
 
     const body: Record<string, unknown> = { text, engine, voice, speed, plan }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
@@ -152,7 +154,7 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
-    showStatus(`Conversion complete — ${engine.toUpperCase()} engine`, 'success')
+    showStatus(t('status.complete').replace('{engine}', engine.toUpperCase()), 'success')
 
     const item = { text: text.slice(0, 50) + (text.length > 50 ? '…' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
     setHistory(prev => [item, ...prev.slice(0, 9)])
@@ -165,7 +167,7 @@ export default function HomePage() {
     a.href = audioUrl
     a.download = `tts-${Date.now()}.mp3`
     a.click()
-    showStatus('Download started', 'success')
+    showStatus(t('status.downloadStart'), 'success')
   }
 
   const VOICES = [
@@ -205,21 +207,22 @@ export default function HomePage() {
               </div>
               <div>
                 <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>
-                  AI Text to Speech <span style={{ color: 'var(--primary-light)', fontSize: '0.7em', fontWeight: 700 }}>v2.0</span>
+                  {t('app.title')} <span style={{ color: 'var(--primary-light)', fontSize: '0.7em', fontWeight: 700 }}>{t('app.version')}</span>
                 </h1>
-                <p className="text-xs" style={{ color: 'var(--text-3)' }}>Multi-Engine AI TTS</p>
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>{t('app.subtitle')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>Pricing</Link>
+              <button className="btn-secondary text-xs" onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}>{t('nav.localeToggle')}</button>
+              <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>{t('nav.pricing')}</Link>
               {isLoaded && (
                 user ? (
                   <>
-                    <Link href="/dashboard" className="btn-secondary text-xs"><BarChart3 size={12} className="inline mr-1"/>控制台</Link>
-                    <button className="btn-ghost text-xs" onClick={() => alert('Please set Clerk API Key to enable login')}>Logout</button>
+                    <Link href="/dashboard" className="btn-secondary text-xs"><BarChart3 size={12} className="inline mr-1"/>{t('nav.dashboard')}</Link>
+                    <button className="btn-ghost text-xs" onClick={() => alert(t('alert.clerk'))}>{t('nav.logout')}</button>
                   </>
                 ) : (
-                  <button className="btn-primary text-xs !py-1.5 !px-4 !text-sm !rounded-xl" onClick={() => alert('Please set Clerk API Key to enable login')}>Login</button>
+                  <button className="btn-primary text-xs !py-1.5 !px-4 !text-sm !rounded-xl" onClick={() => alert(t('alert.clerk'))}>{t('nav.login')}</button>
                 )
               )}
             </div>
@@ -233,28 +236,28 @@ export default function HomePage() {
             {/* Status badge */}
             <div className="inline-flex items-center gap-2 badge mb-6" style={{ animation: 'slideUp 0.5s ease both' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981', animation: 'pulseGlow 2s ease-in-out infinite' }} />
-              支援 OpenAI · ElevenLabs · Kokoro
+              {t('hero.badge')}
             </div>
 
             {/* Main headline */}
             <h2 className="text-4xl sm:text-5xl font-black mb-4 leading-tight" style={{ animation: 'slideUp 0.5s ease 0.1s both' }}>
-              <span style={{ color: 'var(--text)' }}>Transform</span>{' '}
+              <span style={{ color: 'var(--text)' }}>{locale === 'zh' ? 'Transform' : 'Transform'}</span>{' '}
               <span style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Text into Natural Speech
+                {t('hero.headline.accent')}
               </span>
             </h2>
 
             {/* Subheadline */}
             <p className="text-base mb-2" style={{ color: 'var(--text-2)', animation: 'slideUp 0.5s ease 0.2s both', maxWidth: '480px', margin: '0 auto' }}>
-              Choose top AI engines and voice styles, generate broadcast-quality narration instantly
+              {t('hero.subheadline')}
             </p>
 
             {/* Quick stats */}
             <div className="flex items-center justify-center gap-6 mt-6" style={{ animation: 'slideUp 0.5s ease 0.3s both' }}>
               {[
-                { icon: <Globe size={12} className="inline" />, label: '6+ 語言' },
-                { icon: <Zap size={14} className="inline" />, label: 'Instant generation' },
-                { icon: <Music size={12} className="inline" />, label: 'MP3 output' },
+                { icon: <Globe size={12} className="inline" />, label: t('hero.stats.lang') },
+                { icon: <Zap size={14} className="inline" />, label: t('hero.stats.instant') },
+                { icon: <Music size={12} className="inline" />, label: t('hero.stats.mp3') },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
                   <span>{item.icon}</span>
@@ -269,7 +272,7 @@ export default function HomePage() {
 
           {/* File Upload */}
           <div className="glass-card p-6">
-            <span className="label"><FolderOpen size={14} className="inline" /> Upload File</span>
+            <span className="label"><FolderOpen size={14} className="inline" /> {t('upload.label')}</span>
             <div
               className={`dropzone ${isDragging ? 'dragging' : ''}`}
               onClick={() => document.getElementById('fileInput')?.click()}
@@ -282,7 +285,7 @@ export default function HomePage() {
               }}
             >
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', filter: 'drop-shadow(0 4px 8px rgba(124,58,237,0.3))' }}><FileText size={24} className="inline" /></div>
-              <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-2)' }}>點擊或拖曳檔案至此</div>
+              <div className="text-sm font-semibold mb-2" style={{ color: 'var(--text-2)' }}>{t('upload.dropzone')}</div>
               <div className="flex flex-wrap gap-1.5 justify-center">
                 {['.txt', '.srt', '.vtt', '.lrc', '.epub', '.pdf', '.docx'].map(f => (
                   <span key={f} className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -296,15 +299,15 @@ export default function HomePage() {
 
           {/* Mode Toggle */}
           <div className="glass-card p-6">
-            <span className="label"><Volume2 size={16} className="inline" /> Conversion Mode</span>
+            <span className="label"><Volume2 size={16} className="inline" /> {t('mode.label')}</span>
             <div className="mode-pill mb-5">
               <button className={mode === 'browser' ? 'active' : ''} onClick={() => setMode('browser')}>
-                <span><Globe size={14} className="inline" /> Browser Mode</span>
-                <span className="sub">Free, no login required</span>
+                <span><Globe size={14} className="inline" /> {t('mode.browser')}</span>
+                <span className="sub">{t('mode.browser.sub')}</span>
               </button>
               <button className={mode === 'api' ? 'active' : ''} onClick={() => setMode('api')}>
-                <span><Bot size={14} className="inline" /> AI 雲端</span>
-                <span className="sub">High quality, login required</span>
+                <span><Bot size={14} className="inline" /> {t('mode.api')}</span>
+                <span className="sub">{t('mode.api.sub')}</span>
               </button>
             </div>
 
@@ -312,7 +315,7 @@ export default function HomePage() {
               <div className="space-y-5 animate-slide-up">
                 {/* Engine Selection */}
                 <div>
-                  <span className="label">Select TTS Engine</span>
+                  <span className="label">{t('mode.engine')}</span>
                   <div className="grid grid-cols-3 gap-3">
                     {ENGINES.map(eng => (
                       <button key={eng.id}
@@ -336,7 +339,7 @@ export default function HomePage() {
 
                 {/* Plan Selection */}
                 <div>
-                  <span className="label">Select Plan</span>
+                  <span className="label">{t('mode.plan')}</span>
                   <div className="flex gap-3">
                     {[
                       ['free', 'Free', '10/day', ''],
@@ -359,7 +362,7 @@ export default function HomePage() {
 
                 {!user && (
                   <div className="toast info text-sm">
-                    <Lightbulb size={12} className="inline" /> Please <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert('Please set Clerk API Key to enable login')}>login</button> first to use API mode
+                    <Lightbulb size={12} className="inline" /> {t('mode.login.hint')} <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert(t('alert.clerk'))}>{t('mode.login.hint.btn')}</button> {t('mode.login.hint.suffix')}
                   </div>
                 )}
 
@@ -386,7 +389,7 @@ export default function HomePage() {
           {/* Text Input */}
           <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-3">
-              <span className="label mb-0"><Pen size={12} className="inline" /> Enter Text</span>
+              <span className="label mb-0"><Pen size={12} className="inline" /> {t('text.label')}</span>
               <div className="flex items-center gap-3">
                 <span className={`text-xs font-semibold ${charCount > 5000 ? 'text-red-400' : ''}`}
                   style={{ color: charCount > 5000 ? 'var(--danger)' : charCount > 4000 ? 'var(--warning)' : 'var(--text-3)' }}>
@@ -397,7 +400,7 @@ export default function HomePage() {
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder="Enter text to convert, or upload a file..."
+              placeholder={t('text.placeholder')}
               className="tts-textarea"
               style={{ fontSize: '0.95rem' }}
             />
@@ -409,7 +412,7 @@ export default function HomePage() {
 
           {/* Voice Selection */}
           <div className="glass-card p-6">
-            <span className="label"><Mic size={14} className="inline" /> Select Voice</span>
+            <span className="label"><Mic size={14} className="inline" /> {t('voice.label')}</span>
             <div className="grid grid-cols-3 gap-3">
               {VOICES.map(v => (
                 <button
@@ -431,7 +434,7 @@ export default function HomePage() {
                   <button
                     className="preview-btn"
                     onClick={e => { e.stopPropagation(); previewVoice(v.code) }}>
-                    <Play size={12} className="inline" /> 試聽
+                    <Play size={12} className="inline" /> {t('voice.preview')}
                   </button>
                 </button>
               ))}
@@ -440,7 +443,7 @@ export default function HomePage() {
 
           {/* Speed Settings */}
           <div className="glass-card p-6">
-            <span className="label"><Zap size={14} className="inline" /> Speed Setting</span>
+            <span className="label"><Zap size={14} className="inline" /> {t('speed.label')}</span>
             {/* Speed presets */}
             <div className="flex gap-2 flex-wrap mb-5">
               {SPEEDS.map(s => (
@@ -452,9 +455,9 @@ export default function HomePage() {
             {/* Fine-tune sliders */}
             <div className="grid grid-cols-3 gap-6">
               {[
-                { label: 'Speed', id: 'speed', min: 0.5, max: 2, step: 0.25, val: speed, display: speed + 'x' },
-                { label: 'Pitch', id: 'pitch', min: -2, max: 2, step: 0.1, val: pitch, display: (pitch > 0 ? '+' : '') + pitch },
-                { label: 'Volume', id: 'volume', min: 0, max: 1, step: 0.1, val: volume, display: Math.round(volume * 100) + '%' },
+                { label: t('speed.speed'), id: 'speed', min: 0.5, max: 2, step: 0.25, val: speed, display: speed + 'x' },
+                { label: t('speed.pitch'), id: 'pitch', min: -2, max: 2, step: 0.1, val: pitch, display: (pitch > 0 ? '+' : '') + pitch },
+                { label: t('speed.volume'), id: 'volume', min: 0, max: 1, step: 0.1, val: volume, display: Math.round(volume * 100) + '%' },
               ].map(s => (
                 <div key={s.id}>
                   <label className="text-xs font-bold block mb-2" style={{ color: 'var(--text-2)', letterSpacing: '0.05em' }}>{s.label}</label>
@@ -482,11 +485,11 @@ export default function HomePage() {
             style={{ fontSize: '1.05rem', letterSpacing: '0.03em' }}
           >
             {isConverting ? (
-              <><Loader size={14} className="inline animate-spin" /> Converting, please wait...</>
+              <><Loader size={14} className="inline animate-spin" /> {t('convert.converting')}</>
             ) : (
               <>
                 <span style={{ fontSize: '1.2em', lineHeight: 1 }}><Volume2 size={16} className="inline" /></span>
-                <span>Start Conversion</span>
+                <span>{t('convert.btn')}</span>
               </>
             )}
           </button>
@@ -504,8 +507,8 @@ export default function HomePage() {
               <div className="flex items-center gap-3 mb-5">
                 <div className="feat-icon"><Sparkles size={16} className="inline" /></div>
                 <div>
-                  <div className="font-black text-base" style={{ color: 'var(--text)' }}>Conversion complete!</div>
-                  <div className="text-xs" style={{ color: 'var(--text-3)' }}>MP3 audio file is ready</div>
+                  <div className="font-black text-base" style={{ color: 'var(--text)' }}>{t('result.title')}</div>
+                  <div className="text-xs" style={{ color: 'var(--text-3)' }}>{t('result.subtitle')}</div>
                 </div>
               </div>
               <div className="progress-bar mb-5">
@@ -513,7 +516,7 @@ export default function HomePage() {
               </div>
               <audio src={audioUrl} controls className="audio-player w-full mb-5" />
               <button onClick={downloadAudio} className="btn-primary !py-3 !px-8 !text-sm">
-                <Download size={14} className="inline" /> Download Audio
+                <Download size={14} className="inline" /> {t('result.download')}
               </button>
             </div>
           )}
@@ -522,8 +525,8 @@ export default function HomePage() {
           {history.length > 0 && (
             <div className="glass-card p-6">
               <div className="flex justify-between items-center mb-4">
-                <span className="label mb-0"><ScrollText size={12} className="inline" /> Conversion History</span>
-                <button onClick={() => setHistory([])} className="btn-ghost text-xs">Clear</button>
+                <span className="label mb-0"><ScrollText size={12} className="inline" /> {t('history.label')}</span>
+                <button onClick={() => setHistory([])} className="btn-ghost text-xs">{t('history.clear')}</button>
               </div>
               <div className="space-y-2">
                 {history.map((item, i) => (
@@ -545,7 +548,7 @@ export default function HomePage() {
           {/* Footer */}
           <div className="text-center pt-4 pb-8">
             <p className="text-xs" style={{ color: 'var(--text-3)' }}>
-              Powered by AI · OpenAI · ElevenLabs · Kokoro
+              {t('footer.powered')}
             </p>
           </div>
         </main>

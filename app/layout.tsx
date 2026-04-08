@@ -1,5 +1,6 @@
 import './globals.css'
 import ClerkLoader from '@/components/ClerkLoader'
+import { LocaleProvider } from '@/contexts/LangContext'
 
 export const metadata = {
   title: '文字轉語音 v2.0 — 多引擎 AI TTS',
@@ -13,7 +14,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-TW">
       <body>
-        <ClerkLoader>{children}</ClerkLoader>
+        <ClerkLoader>
+          <LocaleProvider>
+            {children}
+          </LocaleProvider>
+        </ClerkLoader>
       </body>
     </html>
   )

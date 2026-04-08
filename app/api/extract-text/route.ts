@@ -1,6 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs/promises'
+import os from 'os'
+import path from 'path'
+import { randomUUID } from 'crypto'
+
+export const runtime = 'nodejs'
+export const maxDuration = 30
+export const preferredRegion = 'hnd1'
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+
+function stripHtml(input: string) {
+  return input
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+async function extractEpubText(buffer: Buffer) {
+  const epubPath = path.join(os.tmpdir(), `ebook-${randomUUID()}.epub`)
+  await fs.writeFile(epubPath, buffer)
+
+  try {
+    const Epub = (await import('epubjs')).default as unknown as new (input: string) => {
+      load: () => Promise<void>
+      ready: Promise<void>
+      spine: { items: Array<{ href?: string }> }
+      archive: { read: (target: string) => Promise<string> }
+    }
+
+    const book = new Epub(epubPath)
+    await book.load()
+    await book.ready
+
+    const chapterTexts: string[] = []
+    for (const item of book.spine?.items ?? []) {
+      if (!item?.href) continue
+      try {
+        const html = await book.archive.read(item.href)
+        const text = stripHtml(String(html || ''))
+        if (text) chapterTexts.push(text)
+      } catch {
+        // Ignore individual chapter failures and continue extracting the rest.
+      }
+    }
+
+    return chapterTexts.join('\n\n').trim()
+  } finally {
+    await fs.unlink(epubPath).catch(() => {})
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,25 +89,8 @@ export async function POST(req: NextRequest) {
       const data = await pdfParse(buffer)
       text = data.text
     } else if (ext === 'epub') {
-      const epub = require('epub-parser')
-      const bufferArray = Array.from(buffer)
-      const epubText: string = await new Promise<string>((resolve, reject) => {
-        epub.open(Buffer.from(bufferArray), function (err: Error | null, meta: any) {
-          if (err) { reject(err); return }
-          const chapters: string[] = []
-          if (meta && meta.flow) {
-            for (const id of Object.keys(meta.flow)) {
-              const chapter = meta.flow[id]
-              if (chapter && chapter.html) {
-                chapters.push(chapter.html.replace(/<[^>]+>/g, '').trim())
-              }
-            }
-          }
-          resolve(chapters.join('\n\n').trim())
-        })
-      })
-      text = epubText
-      if (!text || text.trim().length === 0) {
+      text = await extractEpubText(buffer)
+      if (!text) {
         return NextResponse.json({ error: 'Could not extract text from EPUB' }, { status: 422 })
       }
     } else if (ext === 'docx') {
