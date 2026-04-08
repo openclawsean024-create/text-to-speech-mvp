@@ -6,8 +6,8 @@ import { useClerkUser } from '@/hooks/useClerk'
 import { useLocale } from '@/contexts/LangContext'
 import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
-  FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download,
-  ScrollText, Lightbulb, Mic, Headphones, Volume, Rocket, Play,
+  FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download, Share2,
+  ScrollText, Lightbulb, Mic, Headphones, Volume, Rocket, Play, Link2,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +31,9 @@ export default function HomePage() {
   const [progress, setProgress] = useState(0)
   const [history, setHistory] = useState<{ text: string; time: string; mode: string }[]>([])
   const [isDragging, setIsDragging] = useState(false)
+  const [downloadFormat, setDownloadFormat] = useState<'mp3' | 'wav'>('mp3')
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [isSharing, setIsSharing] = useState(false)
 
   const showStatus = (msg: string, type: 'info' | 'error' | 'success') => {
     setStatus({ msg, type })
@@ -87,7 +90,6 @@ export default function HomePage() {
 
   const handleConvert = async () => {
     if (!text.trim()) { showStatus(t('status.noText'), 'error'); return }
-    if (text.length > 5000) { showStatus(t('status.textTooLong'), 'error'); return }
     if (mode === 'api' && !user) { showStatus(t('status.loginRequired'), 'error'); return }
 
     setIsConverting(true)
@@ -161,13 +163,97 @@ export default function HomePage() {
     persistSettings()
   }
 
-  const downloadAudio = () => {
+  const downloadAudio = async () => {
     if (!audioUrl) return
-    const a = document.createElement('a')
-    a.href = audioUrl
-    a.download = `tts-${Date.now()}.mp3`
-    a.click()
-    showStatus(t('status.downloadStart'), 'success')
+    setIsConverting(true)
+    try {
+      let blobUrl = audioUrl
+      if (downloadFormat === 'wav') {
+        blobUrl = await convertToWav(audioUrl)
+      }
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `tts-${Date.now()}.${downloadFormat}`
+      a.click()
+      if (downloadFormat === 'wav') URL.revokeObjectURL(blobUrl)
+      showStatus(t('status.downloadStart'), 'success')
+    } catch {
+      showStatus('下載失敗，請稍後再試', 'error')
+    }
+    setIsConverting(false)
+  }
+
+  const convertToWav = async (blobUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      fetch(blobUrl)
+        .then(res => res.arrayBuffer())
+        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+          // WAV encoding: interleaved PCM
+          const numChannels = audioBuffer.numberOfChannels
+          const sampleRate = audioBuffer.sampleRate
+          const bitsPerSample = 16
+          const bytesPerSample = bitsPerSample / 8
+          const blockAlign = numChannels * bytesPerSample
+          const byteRate = sampleRate * blockAlign
+          const dataSize = audioBuffer.length * blockAlign
+          const headerSize = 44
+          const totalSize = headerSize + dataSize
+          const buffer = new ArrayBuffer(totalSize)
+          const view = new DataView(buffer)
+          // RIFF header
+          const writeStr = (offset: number, str: string) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)) }
+          writeStr(0, 'RIFF')
+          view.setUint32(4, totalSize - 8, true)
+          writeStr(8, 'WAVE')
+          writeStr(12, 'fmt ')
+          view.setUint32(16, 16, true)         // chunk size
+          view.setUint16(20, 1, true)          // PCM format
+          view.setUint16(22, numChannels, true)
+          view.setUint32(24, sampleRate, true)
+          view.setUint32(28, byteRate, true)
+          view.setUint16(32, blockAlign, true)
+          view.setUint16(34, bitsPerSample, true)
+          writeStr(36, 'data')
+          view.setUint32(40, dataSize, true)
+          // Write interleaved samples
+          const channels: Float32Array[] = []
+          for (let c = 0; c < numChannels; c++) channels.push(audioBuffer.getChannelData(c))
+          let offset = 44
+          for (let i = 0; i < audioBuffer.length; i++) {
+            for (let c = 0; c < numChannels; c++) {
+              const s = Math.max(-1, Math.min(1, channels[c][i]))
+              view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+              offset += 2
+            }
+          }
+          const wavBlob = new Blob([buffer], { type: 'audio/wav' })
+          resolve(URL.createObjectURL(wavBlob))
+        })
+        .catch(reject)
+    })
+  }
+
+  const handleShare = async () => {
+    if (!audioUrl || !text.trim()) return
+    setIsSharing(true)
+    try {
+      // Store current state in URL params for sharing
+      const params = new URLSearchParams({
+        text: text.slice(0, 500),
+        engine,
+        voice,
+        speed: String(speed),
+      })
+      const shareUrlStr = `${window.location.origin}?shared=1&${params.toString()}`
+      await navigator.clipboard.writeText(shareUrlStr)
+      setShareUrl(shareUrlStr)
+      showStatus(t('status.linkCopied') || '分享連結已複製到剪貼簿', 'success')
+    } catch {
+      showStatus('分享失敗，請稍後再試', 'error')
+    }
+    setIsSharing(false)
   }
 
   const VOICES = [
@@ -391,9 +477,9 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-3">
               <span className="label mb-0"><Pen size={12} className="inline" /> {t('text.label')}</span>
               <div className="flex items-center gap-3">
-                <span className={`text-xs font-semibold ${charCount > 5000 ? 'text-red-400' : ''}`}
-                  style={{ color: charCount > 5000 ? 'var(--danger)' : charCount > 4000 ? 'var(--warning)' : 'var(--text-3)' }}>
-                  {charCount.toLocaleString()} / 5,000
+                <span className="text-xs font-semibold"
+                  style={{ color: 'var(--text-3)' }}>
+                  {charCount.toLocaleString()} 字
                 </span>
               </div>
             </div>
@@ -515,9 +601,40 @@ export default function HomePage() {
                 <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
               </div>
               <audio src={audioUrl} controls className="audio-player w-full mb-5" />
-              <button onClick={downloadAudio} className="btn-primary !py-3 !px-8 !text-sm">
-                <Download size={14} className="inline" /> {t('result.download')}
-              </button>
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                {/* Format selector */}
+                <div className="flex gap-2">
+                  {(['mp3', 'wav'] as const).map(fmt => (
+                    <button
+                      key={fmt}
+                      onClick={() => setDownloadFormat(fmt)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        downloadFormat === fmt ? 'btn-primary' : 'btn-secondary'
+                      }`}
+                    >
+                      {fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                {/* Download button */}
+                <button onClick={downloadAudio} className="btn-primary !py-2.5 !px-6 !text-sm">
+                  <Download size={14} className="inline" /> {t('result.download')}
+                </button>
+                {/* Share button */}
+                <button onClick={handleShare} disabled={isSharing} className="btn-secondary !py-2.5 !px-6 !text-sm">
+                  {isSharing
+                    ? <><Loader size={12} className="inline animate-spin" /> 處理中</>
+                    : <><Share2 size={14} className="inline" /> {shareUrl ? '已複製' : '分享連結'}</>
+                  }
+                </button>
+              </div>
+              {shareUrl && (
+                <div className="mt-2 text-xs rounded-lg p-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-3)', wordBreak: 'break-all' }}>
+                  <Link2 size={12} className="inline mr-1" />
+                  <span style={{ color: 'var(--text-2)' }}>分享連結：</span>
+                  <a href={shareUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-light)' }}>{shareUrl}</a>
+                </div>
+              )}
             </div>
           )}
 

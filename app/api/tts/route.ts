@@ -43,9 +43,6 @@ export async function POST(req: NextRequest) {
     if (!text || typeof text !== 'string' || !text.trim()) {
       return NextResponse.json({ error: 'text is required' }, { status: 400 })
     }
-    if (text.length > 5000) {
-      return NextResponse.json({ error: 'text exceeds 5000 character limit' }, { status: 400 })
-    }
     if (!ALLOWED_ENGINES.includes(engine)) {
       return NextResponse.json(
         { error: `Invalid engine. Allowed: ${ALLOWED_ENGINES.join(', ')}` },
