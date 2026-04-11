@@ -588,13 +588,17 @@
             if (!response.ok) {
                 let errorMsg = `HTTP ${response.status}`;
                 try {
-                    const contentType = response.headers.get('content-type') || '';
+                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                    const bodyText = await response.text();
                     if (contentType.includes('application/json')) {
-                        const errData = await response.json();
-                        errorMsg = errData.error || errData.message || errorMsg;
-                    } else {
-                        const textBody = await response.text();
-                        if (textBody) errorMsg += ': ' + textBody.slice(0, 200);
+                        try {
+                            const errData = JSON.parse(bodyText);
+                            errorMsg = errData.error || errData.message || errorMsg;
+                        } catch (parseErr) {
+                            if (bodyText) errorMsg += ': ' + bodyText.slice(0, 200);
+                        }
+                    } else if (bodyText) {
+                        errorMsg += ': ' + bodyText.slice(0, 200);
                     }
                 } catch (_) {}
                 throw new Error(errorMsg);
