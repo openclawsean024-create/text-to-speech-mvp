@@ -47,7 +47,7 @@ export default function HomePage() {
       showStatus(t('status.unsupported').replace('{ext}', ext), 'error')
       return
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 4 * 1024 * 1024) {
       showStatus(t('status.fileLarge'), 'error')
       return
     }
@@ -56,7 +56,14 @@ export default function HomePage() {
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/extract-text', { method: 'POST', body: formData })
-      const data = await res.json()
+      let data
+      const contentType = res.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        data = await res.json()
+      } else {
+        const text = await res.text()
+        throw new Error(text || 'Server error (file too large or unsupported format)')
+      }
       if (!res.ok) throw new Error(data.error || 'Extraction failed')
       setText(data.text)
       showStatus(t('status.extracted').replace('{count}', data.charCount.toLocaleString()).replace('{filename}', data.filename), 'success')
