@@ -24,12 +24,117 @@ function resolveVoice(engine: string, frontendVoice?: string) {
   return mapped ? mapped[engine] : undefined
 }
 
+const CHUNK_SIZE = 5000 // chars per chunk
+
+function chunkText(text: string, size: number = CHUNK_SIZE): string[] {
+  // Split by line to avoid cutting mid-sentence when possible
+  const paragraphs = text.split(/\n+/)
+  const chunks: string[] = []
+  let current = ''
+
+  for (const para of paragraphs) {
+    if ((current + para).length <= size) {
+      current += (current ? '\n' : '') + para
+    } else {
+      if (current) chunks.push(current)
+      // If single paragraph exceeds chunk size, split by sentence
+      if (para.length > size) {
+        const sentences = para.split(/(?<=[。！？.!?])\s*/)
+        current = ''
+        for (const sent of sentences) {
+          if (current && (current + sent).length > size) {
+            chunks.push(current)
+            current = sent
+          } else {
+            current += (current ? ' ' : '') + sent
+          }
+        }
+      } else {
+        current = para
+      }
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
+}
+
+async function mergeMp3Chunks(chunks: Buffer[], tmpDir: string): Promise<Buffer> {
+  const { execSync } = require('child_process')
+  const path = require('path')
+  const fs = require('fs')
+
+  // Write each chunk to a temp file
+  const files: string[] = []
+  for (let i = 0; i < chunks.length; i++) {
+    const f = path.join(tmpDir, `chunk_${i}.mp3`)
+    fs.writeFileSync(f, chunks[i])
+    files.push(f)
+  }
+
+  // Use FFmpeg to concatenate all MP3 files
+  const listFile = path.join(tmpDir, 'chunks.txt')
+  const fileListContent = files.map(f => `file '${f}'`).join('\n')
+  fs.writeFileSync(listFile, fileListContent)
+
+  const outputFile = path.join(tmpDir, `merged_${Date.now()}.mp3`)
+  execSync(`ffmpeg -f concat -safe 0 -i "${listFile}" -c copy "${outputFile}" -y`)
+
+  const result = fs.readFileSync(outputFile)
+
+  // Cleanup
+  for (const f of files) fs.unlinkSync(f)
+  fs.unlinkSync(listFile)
+  fs.unlinkSync(outputFile)
+
+  return result
+}
+
+/**
+ * Synthesize with auto-chunking for large texts.
+ * Returns { audio: Buffer, contentType, isChunked, totalChunks, completedChunks }
+ */
+async function synthesizeWithChunking(params: {
+  engine: string
+  text: string
+  voice: string
+  speed: number
+  apiKey: string
+}) {
+  const { text, engine, voice, speed, apiKey } = params
+
+  if (text.length <= CHUNK_SIZE) {
+    const result = await synthesize({ engine, text: text.trim(), voice, speed, apiKey })
+    return { ...result, isChunked: false, totalChunks: 1, completedChunks: 1 }
+  }
+
+  const chunks = chunkText(text.trim(), CHUNK_SIZE)
+  const audioChunks: Buffer[] = []
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkResult = await synthesize({ engine, text: chunks[i], voice, speed, apiKey })
+    audioChunks.push(chunkResult.audio)
+  }
+
+  // Merge using FFmpeg
+  const os = require('os')
+  const tmpDir = os.tmpdir()
+  const merged = await mergeMp3Chunks(audioChunks, tmpDir)
+
+  return {
+    audio: merged,
+    contentType: 'audio/mpeg',
+    engine,
+    isChunked: true,
+    totalChunks: chunks.length,
+    completedChunks: chunks.length,
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth()
 
     if (!userId) {
-      // Anonymous usage — use plan-based rate limiting by IP
       return NextResponse.json(
         { error: '請先登入後再使用 API 模式' },
         { status: 401 }
@@ -83,9 +188,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Synthesize ────────────────────────────────────────────────
+    // ── Synthesize (with auto-chunking for large texts) ────────────
     const voice = resolveVoice(engine, frontendVoice) || frontendVoice
-    const result = await synthesize({
+    const result = await synthesizeWithChunking({
       engine,
       text: text.trim(),
       voice,
@@ -96,13 +201,17 @@ export async function POST(req: NextRequest) {
     // ── Track Usage ────────────────────────────────────────────────
     await incrementUsage(userId)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const blob = new Blob([result.audio as any], { type: result.contentType })
     const filename = `tts-${engine}-${Date.now()}.mp3`
-    return new NextResponse(result.audio, {
+    return new NextResponse(blob, {
       status: 200,
       headers: {
         'Content-Type': result.contentType,
         'Content-Disposition': `inline; filename="${filename}"`,
         'X-TTS-Engine': result.engine,
+        'X-TTS-Chunked': String(!!result.isChunked),
+        'X-TTS-Total-Chunks': String(result.totalChunks),
         'X-RateLimit-Remaining': String(Math.max(0, limit.remaining - 1)),
         'X-RateLimit-Limit': String(limit.limit),
         'Cache-Control': 'no-store',

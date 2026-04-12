@@ -34,6 +34,9 @@ export default function HomePage() {
   const [downloadFormat, setDownloadFormat] = useState<'mp3' | 'wav'>('mp3')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [isSharing, setIsSharing] = useState(false)
+  // Chunk progress tracking (v2)
+  const [chunkProgress, setChunkProgress] = useState<{ current: number; total: number } | null>(null)
+  const [isMerging, setIsMerging] = useState(false)
 
   const showStatus = (msg: string, type: 'info' | 'error' | 'success') => {
     setStatus({ msg, type })
@@ -47,7 +50,7 @@ export default function HomePage() {
       showStatus(t('status.unsupported').replace('{ext}', ext), 'error')
       return
     }
-    if (file.size > 4 * 1024 * 1024) {
+    if (file.size > 50 * 1024 * 1024) {
       showStatus(t('status.fileLarge'), 'error')
       return
     }
@@ -74,7 +77,7 @@ export default function HomePage() {
 
   const charCount = text.length
   const estimatedSeconds = Math.max(1, Math.round(charCount / 6 / speed))
-  const chunks = Math.max(1, Math.ceil(charCount / 500))
+  const chunks = Math.max(1, Math.ceil(charCount / 5000))
 
   useEffect(() => {
     if (user) {
@@ -138,8 +141,19 @@ export default function HomePage() {
   const convertAPI = async () => {
     if (!user) { showStatus(t('status.loginRequired'), 'error'); return }
 
+    setChunkProgress(null)
+    setIsMerging(false)
+
     const body: Record<string, unknown> = { text, engine, voice, speed, plan }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
+
+    // Show chunking info if text is large
+    const totalChars = text.trim().length
+    const estimatedChunks = Math.max(1, Math.ceil(totalChars / 5000))
+    if (totalChars > 5000) {
+      setChunkProgress({ current: 0, total: estimatedChunks })
+      showStatus(`超大檔案：自動拆分為 ${estimatedChunks} 個片段處理中...`, 'info')
+    }
 
     const res = await fetch('/api/tts', {
       method: 'POST',
@@ -156,13 +170,27 @@ export default function HomePage() {
           msg = err.error || err.message || msg
         }
       } catch (_) {}
+      setChunkProgress(null)
       throw new Error(msg)
+    }
+
+    const isChunked = res.headers.get('X-TTS-Chunked') === 'true'
+    const totalChunks = parseInt(res.headers.get('X-TTS-Total-Chunks') || '1', 10)
+
+    if (isChunked && totalChunks > 1) {
+      setIsMerging(true)
+      setChunkProgress({ current: totalChunks, total: totalChunks })
+      showStatus('合併中...', 'info')
+    } else {
+      setChunkProgress(null)
     }
 
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
+    setChunkProgress(null)
+    setIsMerging(false)
     showStatus(t('status.complete').replace('{engine}', engine.toUpperCase()), 'success')
 
     const item = { text: text.slice(0, 50) + (text.length > 50 ? '…' : ''), time: new Date().toLocaleString('zh-TW'), mode: engine }
@@ -265,7 +293,7 @@ export default function HomePage() {
 
   const VOICES = [
     { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 男聲', photo: 'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=200&h=200&fit=crop&crop=face', color: '#60a5fa' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
     { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
     { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
     { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
@@ -500,6 +528,11 @@ export default function HomePage() {
             <div className="flex gap-5 mt-3 text-xs" style={{ color: 'var(--text-3)' }}>
               <span className="flex items-center gap-1"><Clock size={12} className="inline" /> 預估時長 · <strong style={{ color: 'var(--text-2)' }}>{estimatedSeconds}s</strong></span>
               <span className="flex items-center gap-1"><Boxes size={12} className="inline" /> <strong style={{ color: 'var(--text-2)' }}>{chunks}</strong> 段落</span>
+              {charCount > 5000 && (
+                <span className="flex items-center gap-1" style={{ color: 'var(--primary-light)' }}>
+                  <Sparkles size={12} className="inline" /> 自動拆分
+                </span>
+              )}
             </div>
           </div>
 
@@ -604,9 +637,18 @@ export default function HomePage() {
                   <div className="text-xs" style={{ color: 'var(--text-3)' }}>{t('result.subtitle')}</div>
                 </div>
               </div>
-              <div className="progress-bar mb-5">
+              <div className="progress-bar mb-3">
                 <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
               </div>
+              {chunkProgress && chunkProgress.total > 1 && (
+                <div className="text-xs mb-3" style={{ color: 'var(--text-3)' }}>
+                  {isMerging ? (
+                    <span className="flex items-center gap-1"><Loader size={12} className="inline animate-spin" /> 合併中...</span>
+                  ) : (
+                    <span>片段 {chunkProgress.current} / {chunkProgress.total} 完成</span>
+                  )}
+                </div>
+              )}
               <audio src={audioUrl} controls className="audio-player w-full mb-5" />
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 {/* Format selector */}
