@@ -79,18 +79,48 @@ async function mergeMp3Chunks(chunks: Buffer[], tmpDir: string): Promise<Buffer>
   return result
 }
 
+async function mp3ToWav(mp3Buffer: Buffer, tmpDir: string): Promise<Buffer> {
+  const { execSync } = require('child_process')
+  const path = require('path')
+  const fs = require('fs')
+
+  const inputFile = path.join(tmpDir, `input_${Date.now()}.mp3`)
+  const outputFile = path.join(tmpDir, `output_${Date.now()}.wav`)
+  fs.writeFileSync(inputFile, mp3Buffer)
+
+  try {
+    execSync(`ffmpeg -i "${inputFile}" -acodec pcm_s16le -ar 44100 -ac 2 "${outputFile}" -y`)
+    const result = fs.readFileSync(outputFile)
+    return result
+  } finally {
+    try { fs.unlinkSync(inputFile) } catch { /* ignore */ }
+    try { fs.unlinkSync(outputFile) } catch { /* ignore */ }
+  }
+}
+
 async function synthesizeWithChunking(params: {
   engine: string
   text: string
   voice: string
   speed: number
   apiKey: string
+  format: 'mp3' | 'wav'
 }) {
-  const { text, engine, voice, speed, apiKey } = params
+  const { text, engine, voice, speed, apiKey, format } = params
 
   if (text.length <= CHUNK_SIZE) {
     const result = await synthesize({ engine, text: text.trim(), voice, speed, apiKey })
-    return { ...result, isChunked: false, totalChunks: 1, completedChunks: 1 }
+
+    let audio = result.audio
+    let contentType = result.contentType
+
+    if (format === 'wav') {
+      const os = require('os')
+      audio = await mp3ToWav(audio, os.tmpdir())
+      contentType = 'audio/wav'
+    }
+
+    return { audio, contentType, engine, isChunked: false, totalChunks: 1, completedChunks: 1 }
   }
 
   const chunks = chunkText(text.trim(), CHUNK_SIZE)
@@ -103,11 +133,24 @@ async function synthesizeWithChunking(params: {
 
   const os = require('os')
   const tmpDir = os.tmpdir()
-  const merged = await mergeMp3Chunks(audioChunks, tmpDir)
+
+  // Merge chunks to MP3 first
+  const mergedMp3 = await mergeMp3Chunks(audioChunks, tmpDir)
+
+  // Then convert to WAV if requested
+  let audio: Buffer
+  let contentType: string
+  if (format === 'wav') {
+    audio = await mp3ToWav(mergedMp3, tmpDir)
+    contentType = 'audio/wav'
+  } else {
+    audio = mergedMp3
+    contentType = 'audio/mpeg'
+  }
 
   return {
-    audio: merged,
-    contentType: 'audio/mpeg',
+    audio,
+    contentType,
     engine,
     isChunked: true,
     totalChunks: chunks.length,
@@ -118,7 +161,9 @@ async function synthesizeWithChunking(params: {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { text, engine = 'openai', voice: frontendVoice, speed = 1.0, plan = 'free', apiKey: bodyApiKey } = body
+    const { text, engine = 'openai', voice: frontendVoice, speed = 1.0, plan = 'free', apiKey: bodyApiKey, format = 'mp3' } = body
+
+    const outputFormat = format === 'wav' ? 'wav' : 'mp3'
 
     // ── Validation ────────────────────────────────────────────────
     if (!text || typeof text !== 'string' || !text.trim()) {
@@ -129,6 +174,9 @@ export async function POST(req: NextRequest) {
         { error: `Invalid engine. Allowed: ${ALLOWED_ENGINES.join(', ')}` },
         { status: 400 }
       )
+    }
+    if (outputFormat !== 'mp3' && outputFormat !== 'wav') {
+      return NextResponse.json({ error: 'Invalid format. Must be mp3 or wav.' }, { status: 400 })
     }
 
     // ── Resolve API Key ───────────────────────────────────────────
@@ -170,6 +218,7 @@ export async function POST(req: NextRequest) {
       voice,
       speed: parseFloat(speed),
       apiKey,
+      format: outputFormat,
     })
 
     // ── Track Usage (logged-in users only) ───────────────────────
@@ -177,9 +226,10 @@ export async function POST(req: NextRequest) {
       await incrementUsage(userId)
     }
 
+    const ext = outputFormat
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blob = new Blob([result.audio as any], { type: result.contentType })
-    const filename = `tts-${engine}-${Date.now()}.mp3`
+    const filename = `tts-output-${Date.now()}.${ext}`
     return new NextResponse(blob, {
       status: 200,
       headers: {
@@ -188,6 +238,7 @@ export async function POST(req: NextRequest) {
         'X-TTS-Engine': result.engine,
         'X-TTS-Chunked': String(!!result.isChunked),
         'X-TTS-Total-Chunks': String(result.totalChunks),
+        'X-TTS-Format': ext,
         'X-RateLimit-Remaining': String(Math.max(0, rateLimitInfo.remaining - 1)),
         'X-RateLimit-Limit': String(rateLimitInfo.limit),
         'Cache-Control': 'no-store',

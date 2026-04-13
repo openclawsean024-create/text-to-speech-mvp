@@ -23,12 +23,22 @@ export default function HomePage() {
 
   const { locale, setLocale, t } = useLocale()
   const { tasks, addTask, removeTask, clearQueue: clearQueueCtx, processing, startProcessing, overallProgress, completedCount, failedCount } = useQueue()
+
+  const VOICES = [
+    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
+    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
+    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
+    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
+    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
+  ]
+
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
   const [plan, setPlan] = useState('free')
   const [voice, setVoice] = useState('zh-CN')
-  const [selectedAvatarSrc, setSelectedAvatarSrc] = useState('')
-  const [selectedAvatarAlt, setSelectedAvatarAlt] = useState('')
+  const [selectedAvatarSrc, setSelectedAvatarSrc] = useState(VOICES[0].photo)
+  const [selectedAvatarAlt, setSelectedAvatarAlt] = useState(VOICES[0].name)
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState(1)
   const [pitch, setPitch] = useState(0)
@@ -51,15 +61,6 @@ export default function HomePage() {
   const [batchText, setBatchText] = useState('')
   const [batchVoice, setBatchVoice] = useState('zh-CN')
   const [batchFormat, setBatchFormat] = useState<'mp3' | 'wav'>('mp3')
-
-  const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
-    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
-    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
-    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
-  ]
 
   const showStatus = (msg: string, type: 'info' | 'error' | 'success') => {
     setStatus({ msg, type })
@@ -101,6 +102,10 @@ export default function HomePage() {
   const charCount = text.length
   const estimatedSeconds = Math.max(1, Math.round(charCount / 6 / speed))
   const chunks = Math.max(1, Math.ceil(charCount / 5000))
+  // File size estimation: MP3 ~12KB/1000chars (96kbps), WAV ~88KB/1000chars (44100Hz 16-bit stereo)
+  const estimatedMp3KB = Math.round(charCount / 1000 * 12)
+  const estimatedWavKB = Math.round(charCount / 1000 * 88)
+  const selectedEstKB = downloadFormat === 'wav' ? estimatedWavKB : estimatedMp3KB
 
   useEffect(() => {
     if (user) {
@@ -115,12 +120,13 @@ export default function HomePage() {
     }
   }, [user])
 
-  // Sync avatar display with selected voice from VoiceContext
+  // Sync avatar display with selected voice
   useEffect(() => {
-    if (selectedVoice) {
-      setSelectedAvatarAlt(selectedVoice.name)
+    const v = VOICES.find(v => v.code === voice)
+    if (v) {
+      setSelectedAvatarAlt(v.name)
     }
-  }, [selectedVoice])
+  }, [voice])
 
   const persistSettings = useCallback(() => {
     if (user) {
@@ -174,11 +180,7 @@ export default function HomePage() {
     setChunkProgress(null)
     setIsMerging(false)
 
-    // Use selectedVoice.openaiVoice for OpenAI engine, fallback to legacy voice code
-    const effectiveVoice = engine === 'openai' && selectedVoice?.openaiVoice
-      ? selectedVoice.openaiVoice
-      : voice
-    const body: Record<string, unknown> = { text, engine, voice: effectiveVoice, speed, plan }
+    const body: Record<string, unknown> = { text, engine, voice, speed, plan, format: downloadFormat }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
 
     // Show chunking info if text is large
@@ -682,9 +684,10 @@ export default function HomePage() {
               className="tts-textarea"
               style={{ fontSize: '0.95rem' }}
             />
-            <div className="flex gap-5 mt-3 text-xs" style={{ color: 'var(--text-3)' }}>
+            <div className="flex gap-5 mt-3 text-xs flex-wrap" style={{ color: 'var(--text-3)' }}>
               <span className="flex items-center gap-1"><Clock size={12} className="inline" /> 預估時長 · <strong style={{ color: 'var(--text-2)' }}>{estimatedSeconds}s</strong></span>
               <span className="flex items-center gap-1"><Boxes size={12} className="inline" /> <strong style={{ color: 'var(--text-2)' }}>{chunks}</strong> 段落</span>
+              <span className="flex items-center gap-1"><Music size={12} className="inline" /> 預估 · <strong style={{ color: 'var(--text-2)' }}>{downloadFormat === 'wav' ? `${estimatedWavKB} KB (WAV)` : `${estimatedMp3KB} KB (MP3)`}</strong></span>
               {charCount > 5000 && (
                 <span className="flex items-center gap-1" style={{ color: 'var(--primary-light)' }}>
                   <Sparkles size={12} className="inline" /> 自動拆分
@@ -799,7 +802,7 @@ export default function HomePage() {
                 </div>
                 {/* Download button */}
                 <button onClick={downloadAudio} className="btn-primary !py-2.5 !px-6 !text-sm">
-                  <Download size={14} className="inline" /> {t('result.download')}
+                  <Download size={14} className="inline" /> {downloadFormat === 'wav' ? '下載 WAV' : '下載 MP3'}
                 </button>
                 {/* Share button */}
                 <button onClick={handleShare} disabled={isSharing} className="btn-secondary !py-2.5 !px-6 !text-sm">

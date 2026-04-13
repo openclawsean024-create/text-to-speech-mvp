@@ -108,7 +108,7 @@ function TaskRow({ task }: { task: BatchTask }) {
               border: '1px solid rgba(16,185,129,0.25)',
             }}
           >
-            <Download size={12} /> 下載 MP3
+            <Download size={12} /> 下載 {task.format.toUpperCase()}
           </button>
         )}
       </div>
