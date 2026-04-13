@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 export const preferredRegion = 'hnd1'
 
-const MAX_SIZE = 4 * 1024 * 1024 // 10MB
+const MAX_SIZE = 10 * 1024 * 1024 // 10MB
 
 function stripHtml(input: string) {
   return input
