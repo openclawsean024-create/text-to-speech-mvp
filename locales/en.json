@@ -1,0 +1,151 @@
+{
+  "app": {
+    "title": "🎤 Text to Speech v2.0",
+    "subtitle": "Multi-engine AI Text-to-Speech",
+    "version": "v2.0 - Multi-Engine Backend"
+  },
+  "upload": {
+    "title": "📁 Upload File",
+    "dropzone": "Click or drag files here",
+    "parsing": "Parsing...",
+    "done": "Done",
+    "loaded": "Loaded",
+    "truncated": "File truncated to 5000 characters",
+    "unsupported": "Unsupported file format",
+    "readError": "File read failed"
+  },
+  "mode": {
+    "title": "🔊 Conversion Mode",
+    "browser": {
+      "label": "🌐 Browser Built-in",
+      "sub": "Free, instant"
+    },
+    "api": {
+      "label": "🤖 AI Cloud Engine",
+      "sub": "High quality, Key required"
+    }
+  },
+  "engine": {
+    "selectEngine": "Select TTS Engine",
+    "selectPlan": "Select Plan",
+    "apiKeyPlaceholder": "Enter API Key (optional, uses backend env var if empty)",
+    "openai": {
+      "name": "🎙️ OpenAI",
+      "tag": "gpt-4o-mini-tts",
+      "note": "<strong>OpenAI:</strong> Requires backend <code>OPENAI_API_KEY</code> env var"
+    },
+    "elevenlabs": {
+      "name": "🎧 ElevenLabs",
+      "tag": "Multilingual v2",
+      "note": "<strong>ElevenLabs:</strong> Requires backend <code>ELEVENLABS_API_KEY</code>"
+    },
+    "kokoro": {
+      "name": "🔉 Kokoro",
+      "tag": "inference.sh",
+      "note": "<strong>Kokoro:</strong> Supports direct API Key or backend env var"
+    }
+  },
+  "plan": {
+    "free": "Free",
+    "starter": "Starter",
+    "pro": "Pro",
+    "freeLimit": "10/day",
+    "starterLimit": "100/day",
+    "proLimit": "1000/day"
+  },
+  "text": {
+    "charCount": "/5000 chars",
+    "placeholder": "Enter text to convert, or upload a file...",
+    "estimated": "Est. duration: ",
+    "segments": "Segments: ",
+    "sec": " sec",
+    "noPreview": "No segment preview yet"
+  },
+  "voice": {
+    "title": "Select Voice",
+    "preview": "▶ Preview",
+    "previewText": "Hello, this is a voice preview."
+  },
+  "speed": {
+    "title": "Speed Presets",
+    "speed": "Speed",
+    "pitch": "Pitch",
+    "volume": "Volume"
+  },
+  "convert": {
+    "button": "🔊 Convert to Speech",
+    "converting": "⏳ Converting..."
+  },
+  "result": {
+    "complete": "🎉 Conversion Complete!",
+    "download": "⬇️ Download Audio",
+    "playing": "✅ Playing... (Browser mode supports online playback only. Switch to OpenAI/ElevenLabs to download audio)",
+    "noAudio": "No audio available for download",
+    "downloadStarted": "⬇️ Download started!",
+    "downloadHint": "Browser mode supports online playback only. Switch to OpenAI/ElevenLabs/Kokoro engine to download audio"
+  },
+  "history": {
+    "title": "Conversion History",
+    "clear": "Clear",
+    "empty": "No conversion history",
+    "loaded": "History loaded ({time})",
+    "confirmClear": "Clear all conversion history?"
+  },
+  "errors": {
+    "empty": "Please enter text or upload a file",
+    "tooLong": "Text cannot exceed 5000 characters. Current: {count} chars",
+    "noApiKey": "Please enter API Key, or confirm backend env vars are set",
+    "invalidApiKey": "Invalid API Key, please check your Key",
+    "rateLimit": "Rate limit exceeded, please try again later (try another engine)",
+    "quotaExhausted": "API quota exhausted, please try tomorrow or change plan",
+    "networkFailed": "Network connection failed, please confirm backend is running",
+    "serverError": "Backend server error, please try again later",
+    "unknown": "Unknown error"
+  },
+  "loading": {
+    "text": "⏳ Converting...",
+    "sub": "Using {engine} engine"
+  },
+  "voicenames": {
+    "zh-CN": "Xiaoxiao",
+    "zh-TW": "Yunxi",
+    "en-US": "Jenny",
+    "ja-JP": "Nanami",
+    "ko-KR": "SunHi",
+    "en-US-male": "James"
+  },
+  "voicelabels": {
+    "zh-CN": "Chinese-Female",
+    "zh-TW": "Chinese-Male",
+    "en-US": "English-Female",
+    "ja-JP": "Japanese-Female",
+    "ko-KR": "Korean-Female",
+    "en-US-male": "English-Male"
+  },
+  "chunkLabel": "Segments: ",
+  "estDurationLabel": "Est. duration: ",
+  "sec": " sec",
+  "noHistory": "No conversion history",
+  "enterText": "Please enter text or upload a file",
+  "textTooLong": "Text exceeds 5000 character limit (current: ",
+  "parsingPdf": "Parsing PDF...",
+  "parsingDocx": "Parsing DOCX...",
+  "parsingEpub": "Parsing EPUB...",
+  "fileTruncated": "File truncated to 5000 characters",
+  "fileReadFailed": "File read failed: ",
+  "fileReadError": "File read error",
+  "epubParseFailed": "EPUB parse failed",
+  "convertComplete": "Conversion complete",
+  "unknownError": "Unknown error",
+  "networkError": "Network connection failed, please try again",
+  "serverError": "Server error, please try again",
+  "engineBrowser": "🌐 Browser built-in (free)",
+  "browserNoDownload": "Browser mode does not support download. Switch to OpenAI/ElevenLabs/Kokoro for audio download.",
+  "playing": "✅ Playing...",
+  "noAudio": "No audio available",
+  "downloadStarted": "⬇️ Download started!",
+  "historyLoaded": "✅ History loaded (",
+  "clearConfirm": "Clear all history?",
+  "placeholder": "Enter text to convert, or upload a file...",
+  "chunkPreviewPlaceholder": "No segment preview yet"
+}

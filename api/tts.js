@@ -104,9 +104,7 @@ module.exports = async function handler(req, res) {
   if (!text || typeof text !== 'string' || !text.trim()) {
     return res.status(400).json({ error: 'text is required' });
   }
-  if (text.length > 5000) {
-    return res.status(400).json({ error: 'text exceeds 5000 character limit' });
-  }
+  // NOTE: 5000-char limit removed — client now handles chunking via splitIntoChunks()
   if (!ALLOWED_ENGINES.includes(engine)) {
     return res.status(400).json({
       error: `Invalid engine. Allowed: ${ALLOWED_ENGINES.join(', ')}`,
