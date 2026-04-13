@@ -4,10 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useClerkUser } from '@/hooks/useClerk'
 import { useLocale } from '@/contexts/LangContext'
+import { useQueue, BatchTask } from '@/contexts/QueueContext'
+import { useVoiceContext } from '@/contexts/VoiceContext'
+import { VOICES as NEW_VOICES, LANGUAGE_LABELS } from '@/lib/voices'
+import VoiceSelector from '@/components/VoiceSelector'
+import BatchQueue from '@/components/BatchQueue'
 import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
   FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download, Share2,
-  ScrollText, Lightbulb, Mic, Headphones, Volume, Rocket, Play, Link2,
+  ScrollText, Lightbulb, Mic, Headphones, Volume, Rocket, Link2,
+  List, Layers, PlusCircle, Server,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -16,20 +22,13 @@ export default function HomePage() {
   const { user, isLoaded } = useClerkUser()
 
   const { locale, setLocale, t } = useLocale()
-  const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
-    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
-    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
-    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
-  ]
+  const { tasks, addTask, removeTask, clearQueue: clearQueueCtx, processing, startProcessing, overallProgress, completedCount, failedCount } = useQueue()
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
   const [plan, setPlan] = useState('free')
   const [voice, setVoice] = useState('zh-CN')
-  const [selectedAvatarSrc, setSelectedAvatarSrc] = useState(VOICES[0].photo)
-  const [selectedAvatarAlt, setSelectedAvatarAlt] = useState(VOICES[0].name)
+  const [selectedAvatarSrc, setSelectedAvatarSrc] = useState('')
+  const [selectedAvatarAlt, setSelectedAvatarAlt] = useState('')
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState(1)
   const [pitch, setPitch] = useState(0)
@@ -44,9 +43,23 @@ export default function HomePage() {
   const [downloadFormat, setDownloadFormat] = useState<'mp3' | 'wav'>('mp3')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [isSharing, setIsSharing] = useState(false)
-  // Chunk progress tracking (v2)
   const [chunkProgress, setChunkProgress] = useState<{ current: number; total: number } | null>(null)
   const [isMerging, setIsMerging] = useState(false)
+
+  // Batch mode state
+  const [pageMode, setPageMode] = useState<'single' | 'batch'>('single')
+  const [batchText, setBatchText] = useState('')
+  const [batchVoice, setBatchVoice] = useState('zh-CN')
+  const [batchFormat, setBatchFormat] = useState<'mp3' | 'wav'>('mp3')
+
+  const VOICES = [
+    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
+    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
+    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
+    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
+    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
+  ]
 
   const showStatus = (msg: string, type: 'info' | 'error' | 'success') => {
     setStatus({ msg, type })
@@ -102,14 +115,12 @@ export default function HomePage() {
     }
   }, [user])
 
-  // Sync avatar display with selected voice
+  // Sync avatar display with selected voice from VoiceContext
   useEffect(() => {
-    const v = VOICES.find(v => v.code === voice)
-    if (v) {
-      setSelectedAvatarSrc(v.photo)
-      setSelectedAvatarAlt(v.name)
+    if (selectedVoice) {
+      setSelectedAvatarAlt(selectedVoice.name)
     }
-  }, [voice])
+  }, [selectedVoice])
 
   const persistSettings = useCallback(() => {
     if (user) {
@@ -163,7 +174,11 @@ export default function HomePage() {
     setChunkProgress(null)
     setIsMerging(false)
 
-    const body: Record<string, unknown> = { text, engine, voice, speed, plan }
+    // Use selectedVoice.openaiVoice for OpenAI engine, fallback to legacy voice code
+    const effectiveVoice = engine === 'openai' && selectedVoice?.openaiVoice
+      ? selectedVoice.openaiVoice
+      : voice
+    const body: Record<string, unknown> = { text, engine, voice: effectiveVoice, speed, plan }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
 
     // Show chunking info if text is large
@@ -400,7 +415,138 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Page Mode Toggle */}
+        <div className="max-w-3xl mx-auto px-5">
+          <div className="flex items-center justify-center gap-3 py-2">
+            <button
+              onClick={() => setPageMode('single')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: pageMode === 'single' ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'var(--surface)',
+                color: pageMode === 'single' ? '#fff' : 'var(--text-2)',
+                border: pageMode === 'single' ? 'none' : '1px solid var(--border)',
+                boxShadow: pageMode === 'single' ? '0 4px 14px rgba(124,58,237,0.35)' : 'none',
+              }}
+            >
+              <Volume2 size={14} /> 單一轉換
+            </button>
+            <button
+              onClick={() => setPageMode('batch')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: pageMode === 'batch' ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : 'var(--surface)',
+                color: pageMode === 'batch' ? '#fff' : 'var(--text-2)',
+                border: pageMode === 'batch' ? 'none' : '1px solid var(--border)',
+                boxShadow: pageMode === 'batch' ? '0 4px 14px rgba(124,58,237,0.35)' : 'none',
+              }}
+            >
+              <Layers size={14} /> 批次處理
+              {(() => {
+                const pending = tasks.filter((t: BatchTask) => t.status === 'pending').length
+                return pending > 0 ? (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs" style={{ background: 'rgba(255,255,255,0.25)', color: '#fff' }}>{pending}</span>
+                ) : null
+              })()}
+            </button>
+          </div>
+        </div>
+
         <main className="max-w-3xl mx-auto px-5 py-2 space-y-5 stagger" style={{ position: 'relative', zIndex: 1 }}>
+
+          {/* ── BATCH MODE UI ── */}
+          {pageMode === 'batch' && (
+            <div className="space-y-5">
+              {/* Batch Queue Status */}
+              <div className="glass-card p-6">
+                <BatchQueue />
+              </div>
+
+              {/* Batch Task Entry Form */}
+              <div className="glass-card p-6">
+                <span className="label mb-3 block"><PlusCircle size={14} className="inline" /> 新增批次任務 <span className="text-xs font-normal" style={{ color: 'var(--text-3)' }}>(最多 10 個任務)</span></span>
+
+                {/* Text input for batch task */}
+                <textarea
+                  value={batchText}
+                  onChange={e => setBatchText(e.target.value)}
+                  placeholder="輸入要轉換的文字..."
+                  className="tts-textarea mb-3"
+                  rows={4}
+                  style={{ fontSize: '0.95rem' }}
+                />
+                <div className="flex items-center gap-2 mb-3 text-xs" style={{ color: 'var(--text-3)' }}>
+                  <span>{batchText.length.toLocaleString()} 字</span>
+                  {batchText.length > 5000 && (
+                    <span style={{ color: 'var(--primary-light)' }}>· 自動拆分處理</span>
+                  )}
+                </div>
+
+                {/* Voice + Format row */}
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {/* Voice selector (simplified) */}
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="text-xs font-bold block mb-1.5" style={{ color: 'var(--text-2)' }}>聲音</label>
+                    <select
+                      value={batchVoice}
+                      onChange={e => setBatchVoice(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                      style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                    >
+                      {NEW_VOICES.map(v => (
+                        <option key={v.id} value={v.openaiVoice}>{v.name} · {LANGUAGE_LABELS[v.language]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Format selector */}
+                  <div className="flex-shrink-0">
+                    <label className="text-xs font-bold block mb-1.5" style={{ color: 'var(--text-2)' }}>格式</label>
+                    <div className="flex gap-2">
+                      {(['mp3', 'wav'] as const).map(fmt => (
+                        <button
+                          key={fmt}
+                          onClick={() => setBatchFormat(fmt)}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                            batchFormat === fmt ? 'btn-primary' : 'btn-secondary'
+                          }`}
+                        >
+                          {fmt.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add to Queue button */}
+                <button
+                  onClick={() => {
+                    if (!batchText.trim()) return
+                    const id = `task_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+                    const added = addTask({
+                      id,
+                      text: batchText.trim(),
+                      language: batchVoice,
+                      voice: batchVoice,
+                      format: batchFormat,
+                    })
+                    if (added) {
+                      setBatchText('')
+                    }
+                  }}
+                  disabled={!batchText.trim() || tasks.length >= 10}
+                  className="btn-primary w-full !py-3"
+                  style={{ fontSize: '0.95rem' }}
+                >
+                  <PlusCircle size={14} className="inline" />
+                  {tasks.length >= 10 ? '佇列已滿（最多 10 個）' : '加入佇列'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── SINGLE MODE UI ── */}
+          {pageMode === 'single' && (
+          <>
 
           {/* File Upload */}
           <div className="glass-card p-6">
@@ -547,35 +693,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Voice Selection */}
+          {/* Voice Selection v2 */}
           <div className="glass-card p-6">
             <span className="label"><Mic size={14} className="inline" /> {t('voice.label')}</span>
-            <div className="grid grid-cols-3 gap-3">
-              {VOICES.map(v => (
-                <button
-                  key={v.code}
-                  className={`voice-card ${voice === v.code ? 'selected' : ''}`}
-                  onClick={() => setVoice(v.code)}
-                >
-                  {/* Avatar circle */}
-                  <div className="voice-avatar" style={{ background: `linear-gradient(135deg, ${v.color}cc, ${v.color}66)`, display: 'block', overflow: 'hidden' }}>
-                    <img
-                      src={v.photo}
-                      alt={v.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                    />
-                  </div>
-                  <div className="font-bold text-sm" style={{ color: voice === v.code ? 'var(--primary-light)' : 'var(--text)' }}>{v.name}</div>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{v.lang}</div>
-                  <button
-                    className="preview-btn"
-                    onClick={e => { e.stopPropagation(); previewVoice(v.code) }}>
-                    <Play size={12} className="inline" /> {t('voice.preview')}
-                  </button>
-                </button>
-              ))}
-            </div>
+            <VoiceSelector />
           </div>
 
           {/* Speed Settings */}
@@ -721,6 +842,8 @@ export default function HomePage() {
               </div>
             </div>
           )}
+          </>
+          )}
 
           {/* Footer */}
           <div className="text-center pt-4 pb-8">
@@ -734,42 +857,3 @@ export default function HomePage() {
   )
 }
 
-function previewVoice(voiceCode: string) {
-  const previewTexts: Record<string, string> = {
-    'zh-CN': '您好，這是曉曉的聲音預覽。',
-    'zh-TW': '您好，這是雲希的聲音預覽。',
-    'en-US': 'Hello, this is a voice preview.',
-    'ja-JP': 'こんにちは、七海の聲です。',
-    'ko-KR': '안녕하세요, 선희 목소리 미리보기입니다.',
-    'en-US-male': 'Hello, this is a voice preview.',
-  }
-  const text = previewTexts[voiceCode] || '您好，這是聲音預覽。'
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.rate = 1; utterance.pitch = 1; utterance.volume = 1
-  const voices = window.speechSynthesis.getVoices()
-
-  // Gender-aware voice matching: prefer matching both lang AND gender
-  // zh-TW is male (男聲) but lacks '-male' suffix — use explicit map
-  const GENDER_MAP: Record<string, boolean> = {
-    'zh-CN': false, 'en-US': false, 'ja-JP': false, 'ko-KR': false,  // female
-    'zh-TW': true, 'en-US-male': true,                                // male
-  }
-  const isMale = GENDER_MAP[voiceCode] ?? voiceCode.endsWith('-male')
-  const baseLang = voiceCode.replace('-male', '').split('-')[0]
-  const lang = baseLang.split('-')[0]
-
-  let voiceObj = voices.find(v => {
-    const vLang = v.lang.toLowerCase()
-    const matchesLang = vLang.includes(lang) || vLang.startsWith(lang)
-    const matchesGender = isMale ? v.name.toLowerCase().includes('male') : !v.name.toLowerCase().includes('male')
-    return matchesLang && matchesGender
-  })
-  // Fallback: just match language
-  if (!voiceObj) voiceObj = voices.find(v => v.lang.toLowerCase().includes(lang))
-  // Last resort: first match
-  if (!voiceObj) voiceObj = voices.find(v => v.lang.toLowerCase().includes(baseLang.split('-')[0]))
-
-  if (voiceObj) utterance.voice = voiceObj
-  window.speechSynthesis.cancel()
-  window.speechSynthesis.speak(utterance)
-}

@@ -641,3 +641,473 @@ input[type="text"]:focus {
 }
 
 /* Tailwind config moved to tailwind.config.js */
+
+/* ═══════════════════════════════════════════
+   Voice Selector v2 — New voice selection system
+   ═══════════════════════════════════════════ */
+
+.voice-selector-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ─── Filter Bar ─── */
+.voice-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.voice-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.voice-filter-btn {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.voice-filter-btn:hover {
+  color: var(--text-2);
+  border-color: var(--border-bright);
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.voice-filter-btn.active {
+  background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+}
+
+.voice-filter-btn.active.favorites {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+
+.voice-filter-btn.compare-toggle.active {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.35);
+}
+
+/* ─── Selected Voice Display ─── */
+.voice-selected-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 0.85rem;
+}
+
+.voice-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.voice-selected-label {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.voice-selected-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-light);
+}
+
+.voice-selected-meta {
+  font-size: 0.72rem;
+  color: var(--text-3);
+}
+
+/* ─── Voice Grid ─── */
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.voice-grid.compare-mode {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.voice-grid-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-3);
+  font-size: 0.875rem;
+}
+
+/* ─── Voice Card v2 ─── */
+.voice-card-v2 {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.1rem;
+  padding: 0.85rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: center;
+  overflow: visible;
+}
+
+.voice-card-v2:hover {
+  border-color: rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.voice-card-v2.selected {
+  border-color: var(--primary);
+  background: rgba(124, 58, 237, 0.12);
+  box-shadow: 0 0 0 1px var(--primary), 0 6px 24px rgba(124, 58, 237, 0.2);
+}
+
+.voice-card-v2.comparing {
+  border-color: rgba(6, 182, 212, 0.5);
+  background: rgba(6, 182, 212, 0.06);
+}
+
+/* ─── Card Header (lang badge + fav) ─── */
+.voice-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.voice-card-lang-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6rem;
+  color: var(--text-3);
+}
+
+.voice-card-lang-text {
+  font-weight: 500;
+}
+
+/* ─── Favorite Button ─── */
+.voice-card-fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.15s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.voice-card-fav-btn:hover {
+  color: #f59e0b;
+  transform: scale(1.15);
+}
+
+.voice-card-fav-btn.active {
+  color: #f59e0b;
+}
+
+/* ─── Voice Name & Meta ─── */
+.voice-card-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.voice-card-desc {
+  font-size: 0.6rem;
+  color: var(--text-3);
+  line-height: 1.3;
+}
+
+.voice-card-meta {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.1rem;
+}
+
+.voice-card-gender {
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+.voice-card-gender.gender-male {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+}
+
+.voice-card-gender.gender-female {
+  background: rgba(236, 72, 153, 0.12);
+  color: #f9aaf4;
+}
+
+.voice-card-age {
+  font-size: 0.6rem;
+  color: var(--text-3);
+}
+
+/* ─── Preview Button ─── */
+.voice-card-preview-btn {
+  margin-top: 0.35rem;
+  font-size: 0.62rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(124, 58, 237, 0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.voice-card-preview-btn:hover {
+  background: rgba(124, 58, 237, 0.2);
+  color: #c4b5fd;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+
+/* ─── Selected Badge ─── */
+.voice-card-selected-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+  z-index: 2;
+}
+
+/* ─── Compare Checkbox ─── */
+.voice-card-compare-checkbox {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--border-bright);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: all 0.15s ease;
+}
+
+.voice-card-compare-checkbox:hover {
+  border-color: #06b6d4;
+  background: rgba(6, 182, 212, 0.1);
+}
+
+.voice-card-compare-checkbox.checked {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.4);
+}
+
+/* ─── Comparison Panel ─── */
+.comparison-panel {
+  background: var(--surface);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  border-radius: 1.1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comparison-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comparison-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #22d3ee;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.comparison-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.comparison-close:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.comparison-voice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comparison-voice-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-2);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+.comparison-voice-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.comparison-voice-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.comparison-voice-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.comparison-preview-btn {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.6rem;
+  background: rgba(124, 58, 237, 0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.comparison-preview-btn:hover {
+  background: rgba(124, 58, 237, 0.2);
+}
+
+.comparison-select-btn {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.6rem;
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 600;
+}
+
+.comparison-select-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+.comparison-play-both {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(124, 58, 237, 0.15));
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  border-radius: 0.85rem;
+  color: #22d3ee;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comparison-play-both:hover {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(124, 58, 237, 0.25));
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.15);
+  transform: translateY(-1px);
+}
+
+/* ─── Responsive Voice Grid ─── */
+@media (max-width: 640px) {
+  .voice-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .voice-filter-bar {
+    gap: 0.4rem;
+  }
+
+  .voice-filter-btn {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.55rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .voice-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+}

@@ -1,6 +1,8 @@
 import './globals.css'
 import ClerkLoader from '@/components/ClerkLoader'
 import { LocaleProvider } from '@/contexts/LangContext'
+import { QueueProvider } from '@/contexts/QueueContext'
+import { VoiceProvider } from '@/contexts/VoiceContext'
 
 export const metadata = {
   title: '文字轉語音 v2.0 — 多引擎 AI TTS',
@@ -16,7 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ClerkLoader>
           <LocaleProvider>
-            {children}
+            <QueueProvider>
+              <VoiceProvider>
+                {children}
+              </VoiceProvider>
+            </QueueProvider>
           </LocaleProvider>
         </ClerkLoader>
       </body>
