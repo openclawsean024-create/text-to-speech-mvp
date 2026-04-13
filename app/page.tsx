@@ -236,25 +236,19 @@ export default function HomePage() {
 
   const downloadAudio = async () => {
     if (!audioUrl) return
-    setIsConverting(true)
     try {
-      let blobUrl = audioUrl
-      if (downloadFormat === 'wav') {
-        blobUrl = await convertToWav(audioUrl)
-      }
       const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = `tts-${Date.now()}.${downloadFormat}`
+      a.href = audioUrl
+      a.download = `tts-output-${Date.now()}.${downloadFormat}`
       a.click()
-      if (downloadFormat === 'wav') URL.revokeObjectURL(blobUrl)
       showStatus(t('status.downloadStart'), 'success')
     } catch {
       showStatus('下載失敗，請稍後再試', 'error')
     }
-    setIsConverting(false)
   }
 
   const convertToWav = async (blobUrl: string): Promise<string> => {
+    // Client-side WAV conversion via Web Audio API — used when browser-side TTS returns MP3 blob
     return new Promise((resolve, reject) => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       fetch(blobUrl)
@@ -687,7 +681,7 @@ export default function HomePage() {
             <div className="flex gap-5 mt-3 text-xs flex-wrap" style={{ color: 'var(--text-3)' }}>
               <span className="flex items-center gap-1"><Clock size={12} className="inline" /> 預估時長 · <strong style={{ color: 'var(--text-2)' }}>{estimatedSeconds}s</strong></span>
               <span className="flex items-center gap-1"><Boxes size={12} className="inline" /> <strong style={{ color: 'var(--text-2)' }}>{chunks}</strong> 段落</span>
-              <span className="flex items-center gap-1"><Music size={12} className="inline" /> 預估 · <strong style={{ color: 'var(--text-2)' }}>{downloadFormat === 'wav' ? `${estimatedWavKB} KB (WAV)` : `${estimatedMp3KB} KB (MP3)`}</strong></span>
+              <span className="flex items-center gap-1"><Music size={12} className="inline" /> 預估大小 · MP3: <strong style={{ color: 'var(--text-2)' }}>{estimatedMp3KB} KB</strong> · WAV: <strong style={{ color: 'var(--text-2)' }}>{estimatedWavKB} KB</strong></span>
               {charCount > 5000 && (
                 <span className="flex items-center gap-1" style={{ color: 'var(--primary-light)' }}>
                   <Sparkles size={12} className="inline" /> 自動拆分
@@ -787,7 +781,7 @@ export default function HomePage() {
               <audio src={audioUrl} controls className="audio-player w-full mb-5" />
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 {/* Format selector */}
-                <div className="flex gap-2">
+                <div className="flex gap-2" title="選擇下載格式">
                   {(['mp3', 'wav'] as const).map(fmt => (
                     <button
                       key={fmt}
@@ -795,6 +789,7 @@ export default function HomePage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                         downloadFormat === fmt ? 'btn-primary' : 'btn-secondary'
                       }`}
+                      title={fmt === 'mp3' ? '適合網頁/社群分享，檔案較小' : '無損品質，適合後續音頻編輯'}
                     >
                       {fmt.toUpperCase()}
                     </button>
