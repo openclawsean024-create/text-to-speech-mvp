@@ -16,10 +16,20 @@ export default function HomePage() {
   const { user, isLoaded } = useClerkUser()
 
   const { locale, setLocale, t } = useLocale()
+  const VOICES = [
+    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
+    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
+    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
+    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
+    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
+    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
+  ]
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
   const [plan, setPlan] = useState('free')
   const [voice, setVoice] = useState('zh-CN')
+  const [selectedAvatarSrc, setSelectedAvatarSrc] = useState(VOICES[0].photo)
+  const [selectedAvatarAlt, setSelectedAvatarAlt] = useState(VOICES[0].name)
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState(1)
   const [pitch, setPitch] = useState(0)
@@ -91,6 +101,15 @@ export default function HomePage() {
       }
     }
   }, [user])
+
+  // Sync avatar display with selected voice
+  useEffect(() => {
+    const v = VOICES.find(v => v.code === voice)
+    if (v) {
+      setSelectedAvatarSrc(v.photo)
+      setSelectedAvatarAlt(v.name)
+    }
+  }, [voice])
 
   const persistSettings = useCallback(() => {
     if (user) {
@@ -291,14 +310,6 @@ export default function HomePage() {
     setIsSharing(false)
   }
 
-  const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
-    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
-    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
-    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
-  ]
 
   const ENGINES = [
     { id: 'openai', label: 'OpenAI', sub: 'gpt-4o-mini-tts', color: '#10b981', accent: '#059669' },
