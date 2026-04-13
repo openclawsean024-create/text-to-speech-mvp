@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 413 })
+      return NextResponse.json({ error: 'File too large (max 4MB)' }, { status: 413 })
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''

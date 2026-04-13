@@ -89,7 +89,7 @@ export default function HomePage() {
         data = await res.json()
       } else {
         const text = await res.text()
-        throw new Error(text || 'Server error (file too large or unsupported format)')
+        data = { error: text || 'Server error (file too large or unsupported format)' }
       }
       if (!res.ok) throw new Error(data.error || 'Extraction failed')
       setText(data.text)
@@ -321,7 +321,6 @@ export default function HomePage() {
     setIsSharing(false)
   }
 
-
   const ENGINES = [
     { id: 'openai', label: 'OpenAI', sub: 'gpt-4o-mini-tts', color: '#10b981', accent: '#059669' },
     { id: 'elevenlabs', label: 'ElevenLabs', sub: 'Multilingual v2', color: '#a855f7', accent: '#9333ea' },
@@ -375,38 +374,61 @@ export default function HomePage() {
         {/* Hero Section */}
         <div style={{ position: 'relative', overflow: 'hidden', padding: '3rem 0 2.5rem' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 100% 60% at 50% -10%, rgba(124,58,237,0.2) 0%, transparent 65%)' }} />
-          <div className="max-w-3xl mx-auto px-5 text-center relative">
-            {/* Status badge */}
-            <div className="inline-flex items-center gap-2 badge mb-6" style={{ animation: 'slideUp 0.5s ease both' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981', animation: 'pulseGlow 2s ease-in-out infinite' }} />
-              {t('hero.badge')}
-            </div>
-
-            {/* Main headline */}
-            <h2 className="text-4xl sm:text-5xl font-black mb-4 leading-tight" style={{ animation: 'slideUp 0.5s ease 0.1s both' }}>
-              <span style={{ color: 'var(--text)' }}>{locale === 'zh' ? 'Transform' : 'Transform'}</span>{' '}
-              <span style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                {t('hero.headline.accent')}
-              </span>
-            </h2>
-
-            {/* Subheadline */}
-            <p className="text-base mb-2" style={{ color: 'var(--text-2)', animation: 'slideUp 0.5s ease 0.2s both', maxWidth: '480px', margin: '0 auto' }}>
-              {t('hero.subheadline')}
-            </p>
-
-            {/* Quick stats */}
-            <div className="flex items-center justify-center gap-6 mt-6" style={{ animation: 'slideUp 0.5s ease 0.3s both' }}>
-              {[
-                { icon: <Globe size={12} className="inline" />, label: t('hero.stats.lang') },
-                { icon: <Zap size={14} className="inline" />, label: t('hero.stats.instant') },
-                { icon: <Music size={12} className="inline" />, label: t('hero.stats.mp3') },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
+          <div className="max-w-3xl mx-auto px-5 relative" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
+            {/* Featured Avatar — switches with voice selection */}
+            {selectedAvatarSrc && (
+              <div style={{ animation: 'slideUp 0.5s ease both', flexShrink: 0 }}>
+                <div style={{
+                  width: 120, height: 120, borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${selectedVoiceData?.color}cc, ${selectedVoiceData?.color}44)`,
+                  boxShadow: `0 8px 32px ${selectedVoiceData?.color}44, 0 0 0 3px ${selectedVoiceData?.color}22`,
+                  overflow: 'hidden',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.3s ease',
+                }}>
+                  <img
+                    src={selectedAvatarSrc}
+                    alt={selectedAvatarAlt}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
                 </div>
-              ))}
+              </div>
+            )}
+            {/* Text content */}
+            <div style={{ textAlign: 'center' }}>
+              {/* Status badge */}
+              <div className="inline-flex items-center gap-2 badge mb-6" style={{ animation: 'slideUp 0.5s ease both' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981', animation: 'pulseGlow 2s ease-in-out infinite' }} />
+                {t('hero.badge')}
+              </div>
+
+              {/* Main headline */}
+              <h2 className="text-4xl sm:text-5xl font-black mb-4 leading-tight" style={{ animation: 'slideUp 0.5s ease 0.1s both' }}>
+                <span style={{ color: 'var(--text)' }}>{locale === 'zh' ? 'Transform' : 'Transform'}</span>{' '}
+                <span style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  {t('hero.headline.accent')}
+                </span>
+              </h2>
+
+              {/* Subheadline */}
+              <p className="text-base mb-2" style={{ color: 'var(--text-2)', animation: 'slideUp 0.5s ease 0.2s both', maxWidth: '480px', margin: '0 auto' }}>
+                {t('hero.subheadline')}
+              </p>
+
+              {/* Quick stats */}
+              <div className="flex items-center justify-center gap-6 mt-6" style={{ animation: 'slideUp 0.5s ease 0.3s both' }}>
+                {[
+                  { icon: <Globe size={12} className="inline" />, label: t('hero.stats.lang') },
+                  { icon: <Zap size={14} className="inline" />, label: t('hero.stats.instant') },
+                  { icon: <Music size={12} className="inline" />, label: t('hero.stats.mp3') },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-3)' }}>
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
