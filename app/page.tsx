@@ -13,7 +13,7 @@ import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
   FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download, Share2,
   ScrollText, Lightbulb, Mic, Headphones, Volume, Rocket, Link2,
-  List, Layers, PlusCircle, Server,
+  List, Layers, PlusCircle, Server, X,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -24,21 +24,10 @@ export default function HomePage() {
   const { locale, setLocale, t } = useLocale()
   const { tasks, addTask, removeTask, clearQueue: clearQueueCtx, processing, startProcessing, overallProgress, completedCount, failedCount } = useQueue()
 
-  const VOICES = [
-    { code: 'zh-CN', name: '曉曉', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', color: '#f472b6' },
-    { code: 'zh-TW', name: '雲希', lang: '中文 · 女聲', photo: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face', color: '#f9a8d4' },
-    { code: 'en-US', name: 'Jenny', lang: '英文 · 女聲', photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop&crop=face', color: '#fb923c' },
-    { code: 'ja-JP', name: '七海', lang: '日文 · 女聲', photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop&crop=face', color: '#a78bfa' },
-    { code: 'ko-KR', name: 'SunHi', lang: '韓文 · 女聲', photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face', color: '#34d399' },
-    { code: 'en-US-male', name: 'James', lang: '英文 · 男聲', photo: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=200&h=200&fit=crop&crop=face', color: '#f87171' },
-  ]
-
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
   const [plan, setPlan] = useState('free')
   const [voice, setVoice] = useState('zh-CN')
-  const [selectedAvatarSrc, setSelectedAvatarSrc] = useState(VOICES[0].photo)
-  const [selectedAvatarAlt, setSelectedAvatarAlt] = useState(VOICES[0].name)
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState(1)
   const [pitch, setPitch] = useState(0)
@@ -120,14 +109,6 @@ export default function HomePage() {
     }
   }, [user])
 
-  // Sync avatar display with selected voice
-  useEffect(() => {
-    const v = VOICES.find(v => v.code === voice)
-    if (v) {
-      setSelectedAvatarAlt(v.name)
-    }
-  }, [voice])
-
   const persistSettings = useCallback(() => {
     if (user) {
       localStorage.setItem(`tts_settings_${(user as any)?.id || 'anonymous'}`, JSON.stringify({ engine, plan, voice }))
@@ -142,6 +123,7 @@ export default function HomePage() {
     setProgress(0)
     setAudioUrl(null)
     setStatus(null)
+    setAppState('generating')
 
     try {
       if (mode === 'browser') {
@@ -151,8 +133,10 @@ export default function HomePage() {
       }
     } catch (e: unknown) {
       showStatus(`${t('status.error')}: ` + (e instanceof Error ? e.message : String(e)), 'error')
+      setAppState('idle')
     }
     setIsConverting(false)
+    if (appState === 'generating') setAppState('complete')
   }
 
   const convertBrowser = async () => {
@@ -168,7 +152,7 @@ export default function HomePage() {
     utterance.onboundary = (e) => {
       if (e.name === 'word') setProgress(Math.min((e.charIndex / text.length) * 95, 95))
     }
-    utterance.onend = () => setProgress(100)
+    utterance.onend = () => { setProgress(100); setAppState('complete'); spawnNotes() }
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
     showStatus(t('status.playing'), 'success')
@@ -225,6 +209,8 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob)
     setAudioUrl(url)
     setProgress(100)
+    setAppState('complete')
+    spawnNotes()
     setChunkProgress(null)
     setIsMerging(false)
     showStatus(t('status.complete').replace('{engine}', engine.toUpperCase()), 'success')
@@ -327,7 +313,68 @@ export default function HomePage() {
     { id: 'kokoro', label: 'Kokoro', sub: 'inference.sh', color: '#f59e0b', accent: '#d97706' },
   ]
 
-  const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
+  const SPEEDS = [0.75, 1, 1.25, 1.5]
+
+  // ── Textarea state machine ──
+  const MAX_CHARS = 10000
+  const charPct = text.length / MAX_CHARS
+  const textareaState: 'empty' | 'typing' | 'near-limit' | 'at-limit' =
+    text.length === 0 ? 'empty'
+    : charPct >= 1 ? 'at-limit'
+    : charPct > 0.9 ? 'near-limit'
+    : 'typing'
+
+  const [showClearBtn, setShowClearBtn] = useState(false)
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    if (val.length > MAX_CHARS) return
+    setText(val)
+    setShowClearBtn(val.length > 0)
+  }
+
+  const [appState, setAppState] = useState<'idle' | 'generating' | 'previewing' | 'complete'>('idle')
+  const [completionNotes, setCompletionNotes] = useState<{ id: number; note: string; x: number }[]>([])
+  const [waveformBars, setWaveformBars] = useState<number[]>(Array(40).fill(0.2))
+  const noteIdRef = useRef(0)
+
+  // ── Waveform animation ──
+  useEffect(() => {
+    if (appState === 'idle' || appState === 'generating') {
+      let frame = 0
+      const tick = () => {
+        frame++
+        setWaveformBars(prev => prev.map((_, i) => {
+          const base = Math.sin((frame * 0.08) + i * 0.4) * 0.35
+          const rand = Math.sin((frame * 0.05) + i * 0.7) * 0.15
+          return Math.abs(0.2 + base + rand)
+        }))
+        const raf = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf)
+      }
+      const raf = requestAnimationFrame(tick)
+      return () => cancelAnimationFrame(raf)
+    } else if (appState === 'complete') {
+      setWaveformBars(prev => prev.map(v => Math.max(v - 0.05, 0.2)))
+    }
+  }, [appState])
+
+  // ── Completion notes ──
+  const spawnNotes = () => {
+    const notes = ['♪', '♫', '♬', '♩']
+    const newNotes = notes.map(n => ({
+      id: ++noteIdRef.current,
+      note: n,
+      x: 30 + Math.random() * 40,
+    }))
+    setCompletionNotes(newNotes)
+    setTimeout(() => setCompletionNotes([]), 900)
+  }
+
+  const handleLocaleChange = (l: 'zh' | 'en') => {
+    setLocale(l)
+    try { localStorage.setItem('tts_locale', l) } catch (_) {}
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', position: 'relative' }}>
@@ -355,7 +402,21 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="btn-secondary text-xs" onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}>{t('nav.localeToggle')}</button>
+              {/* Language Segmented Control */}
+              <div className="locale-toggle" role="group" aria-label={t('nav.localeToggle')}>
+                <button
+                  className={locale === 'zh' ? 'active' : ''}
+                  onClick={() => handleLocaleChange('zh')}
+                  aria-pressed={locale === 'zh'}
+                  aria-label="中文"
+                >中文</button>
+                <button
+                  className={locale === 'en' ? 'active' : ''}
+                  onClick={() => handleLocaleChange('en')}
+                  aria-pressed={locale === 'en'}
+                  aria-label="English"
+                >EN</button>
+              </div>
               <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>{t('nav.pricing')}</Link>
               {isLoaded && (
                 user ? (
@@ -375,26 +436,6 @@ export default function HomePage() {
         <div style={{ position: 'relative', overflow: 'hidden', padding: '3rem 0 2.5rem' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 100% 60% at 50% -10%, rgba(124,58,237,0.2) 0%, transparent 65%)' }} />
           <div className="max-w-3xl mx-auto px-5 relative" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem' }}>
-            {/* Featured Avatar — switches with voice selection */}
-            {selectedAvatarSrc && (
-              <div style={{ animation: 'slideUp 0.5s ease both', flexShrink: 0 }}>
-                <div style={{
-                  width: 120, height: 120, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${selectedVoiceData?.color}cc, ${selectedVoiceData?.color}44)`,
-                  boxShadow: `0 8px 32px ${selectedVoiceData?.color}44, 0 0 0 3px ${selectedVoiceData?.color}22`,
-                  overflow: 'hidden',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.3s ease',
-                }}>
-                  <img
-                    src={selectedAvatarSrc}
-                    alt={selectedAvatarAlt}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                  />
-                </div>
-              </div>
-            )}
             {/* Text content */}
             <div style={{ textAlign: 'center' }}>
               {/* Status badge */}
@@ -682,31 +723,53 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Text Input */}
+          {/* Text Input (4 states) */}
           <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-3">
               <span className="label mb-0"><Pen size={12} className="inline" /> {t('text.label')}</span>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold"
-                  style={{ color: 'var(--text-3)' }}>
-                  {charCount.toLocaleString()} 字
+                {/* Char counter with color state */}
+                <span
+                  className={`char-counter text-xs font-semibold ${textareaState === 'near-limit' ? 'near-limit' : ''} ${textareaState === 'at-limit' ? 'at-limit' : ''}`}
+                  style={{ color: 'var(--text-secondary)' }}
+                  aria-live="polite"
+                  aria-label={`${charCount.toLocaleString()} characters of ${MAX_CHARS.toLocaleString()} maximum`}
+                >
+                  {charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}
                 </span>
+                {/* Clear button */}
+                <button
+                  className={`clear-btn ${showClearBtn ? 'visible' : ''}`}
+                  onClick={() => { setText(''); setShowClearBtn(false) }}
+                  aria-label={locale === 'zh' ? '清除文字' : 'Clear text'}
+                  title={locale === 'zh' ? '清除' : 'Clear'}
+                >
+                  <X size={12} />
+                </button>
               </div>
             </div>
             <textarea
               value={text}
-              onChange={e => setText(e.target.value)}
+              onChange={handleTextChange}
               placeholder={t('text.placeholder')}
-              className="tts-textarea"
+              className={`tts-textarea state-${textareaState}`}
               style={{ fontSize: '0.95rem' }}
+              maxLength={MAX_CHARS}
+              aria-label={t('text.label')}
             />
-            <div className="flex gap-5 mt-3 text-xs flex-wrap" style={{ color: 'var(--text-3)' }}>
-              <span className="flex items-center gap-1"><Clock size={12} className="inline" /> 預估時長 · <strong style={{ color: 'var(--text-2)' }}>{estimatedSeconds}s</strong></span>
-              <span className="flex items-center gap-1"><Boxes size={12} className="inline" /> <strong style={{ color: 'var(--text-2)' }}>{chunks}</strong> 段落</span>
-              <span className="flex items-center gap-1"><Music size={12} className="inline" /> 預估大小 · MP3: <strong style={{ color: 'var(--text-2)' }}>{estimatedMp3KB} KB</strong> · WAV: <strong style={{ color: 'var(--text-2)' }}>{estimatedWavKB} KB</strong></span>
+            {/* At limit warning */}
+            {textareaState === 'at-limit' && (
+              <div className="mt-2 text-xs flex items-center gap-1" style={{ color: 'var(--error)' }} aria-live="assertive">
+                <span>⚠</span> {locale === 'zh' ? '已達字數上限' : 'Character limit reached'}
+              </div>
+            )}
+            <div className="flex gap-5 mt-3 text-xs flex-wrap" style={{ color: 'var(--text-secondary)' }}>
+              <span className="flex items-center gap-1"><Clock size={12} className="inline" /> {locale === 'zh' ? '預估時長' : 'Est. duration'} · <strong style={{ color: 'var(--text-primary)' }}>{estimatedSeconds}s</strong></span>
+              <span className="flex items-center gap-1"><Boxes size={12} className="inline" /> <strong style={{ color: 'var(--text-primary)' }}>{chunks}</strong> {locale === 'zh' ? '段落' : 'chunks'}</span>
+              <span className="flex items-center gap-1"><Music size={12} className="inline" /> {locale === 'zh' ? '預估大小' : 'Est. size'} · MP3: <strong style={{ color: 'var(--text-primary)' }}>{estimatedMp3KB} KB</strong> · WAV: <strong style={{ color: 'var(--text-primary)' }}>{estimatedWavKB} KB</strong></span>
               {charCount > 5000 && (
-                <span className="flex items-center gap-1" style={{ color: 'var(--primary-light)' }}>
-                  <Sparkles size={12} className="inline" /> 自動拆分
+                <span className="flex items-center gap-1" style={{ color: 'var(--primary)' }}>
+                  <Sparkles size={12} className="inline" /> {locale === 'zh' ? '自動拆分' : 'Auto-split'}
                 </span>
               )}
             </div>
@@ -718,13 +781,19 @@ export default function HomePage() {
             <VoiceSelector />
           </div>
 
-          {/* Speed Settings */}
+          {/* Speed Settings (iOS Segmented Control) */}
           <div className="glass-card p-6">
             <span className="label"><Zap size={14} className="inline" /> {t('speed.label')}</span>
-            {/* Speed presets */}
-            <div className="flex gap-2 flex-wrap mb-5">
+            {/* iOS-style Segmented Control */}
+            <div className="speed-segmented mb-5" role="group" aria-label={t('speed.label')}>
               {SPEEDS.map(s => (
-                <button key={s} className={`speed-btn ${speed === s ? 'active' : ''}`} onClick={() => setSpeed(s)}>
+                <button
+                  key={s}
+                  className={speed === s ? 'active' : ''}
+                  onClick={() => setSpeed(s)}
+                  aria-pressed={speed === s}
+                  aria-label={`${s}× speed`}
+                >
                   {s}×
                 </button>
               ))}
@@ -778,21 +847,46 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Result Card */}
+          {/* Result Card (with waveform) */}
           {audioUrl && (
-            <div className="glass-card p-6 animate-slide-up" style={{ borderColor: 'rgba(124,58,237,0.25)' }}>
+            <div className="glass-card p-6 animate-slide-up" style={{ borderColor: 'rgba(139,92,246,0.2)' }}>
+              {/* Completion notes overlay */}
+              {completionNotes.map(n => (
+                <span key={n.id} className="note-particle" style={{ left: `${n.x}%`, top: '50%' }} aria-hidden="true">{n.note}</span>
+              ))}
+
               <div className="flex items-center gap-3 mb-5">
                 <div className="feat-icon"><Sparkles size={16} className="inline" /></div>
                 <div>
                   <div className="font-black text-base" style={{ color: 'var(--text)' }}>{t('result.title')}</div>
-                  <div className="text-xs" style={{ color: 'var(--text-3)' }}>{t('result.subtitle')}</div>
+                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('result.subtitle')}</div>
+                </div>
+                {/* Idle soundwave */}
+                <div style={{ marginLeft: 'auto' }} aria-hidden="true">
+                  <div className="soundwave-idle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', height: '24px' }}>
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className="sw-bar" style={{ width: 3, borderRadius: 999, background: 'var(--primary)', opacity: 0.7, height: `${8 + i * 2}px` }} />
+                    ))}
+                  </div>
                 </div>
               </div>
+
+              {/* Waveform Visualization */}
+              <div className="waveform-container mb-5" aria-hidden="true">
+                {waveformBars.map((h, i) => (
+                  <div
+                    key={i}
+                    className="waveform-bar"
+                    style={{ height: `${Math.max(4, h * 40)}px` }}
+                  />
+                ))}
+              </div>
+
               <div className="progress-bar mb-3">
                 <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
               </div>
               {chunkProgress && chunkProgress.total > 1 && (
-                <div className="text-xs mb-3" style={{ color: 'var(--text-3)' }}>
+                <div className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
                   {isMerging ? (
                     <span className="flex items-center gap-1"><Loader size={12} className="inline animate-spin" /> 合併中...</span>
                   ) : (
@@ -800,7 +894,7 @@ export default function HomePage() {
                   )}
                 </div>
               )}
-              <audio src={audioUrl} controls className="audio-player w-full mb-5" />
+              <audio src={audioUrl} controls className="audio-player w-full mb-5" aria-label={locale === 'zh' ? '音頻播放器' : 'Audio player'} />
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 {/* Format selector */}
                 <div className="flex gap-2" title="選擇下載格式">

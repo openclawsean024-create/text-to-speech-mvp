@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -8,10 +7,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#7c3aed',
-        accent: '#06b6d4',
-        danger: '#ef4444',
-        warning: '#f59e0b',
+        primary: '#8B5CF6',
+        'primary-hover': '#7C3AED',
+        secondary: '#6366F1',
+        accent: '#EC4899',
+        'bg-main': '#FAFAFA',
+        surface: '#FFFFFF',
+        'text-primary': '#1A1A1A',
+        'text-secondary': '#71717A',
+        border: '#E4E4E7',
+        error: '#EF4444',
+        success: '#22C55E',
       },
     },
   },

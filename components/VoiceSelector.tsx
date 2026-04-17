@@ -319,7 +319,7 @@ export default function VoiceSelector() {
       )}
 
       {/* Voice grid */}
-      <div className={`voice-grid ${compareMode ? 'compare-mode' : ''}`}>
+      <div className={`voice-grid ${compareMode ? 'compare-mode' : ''} grid grid-cols-1 sm:grid-cols-2`}>
         {filteredVoices.length === 0 ? (
           <div className="voice-grid-empty">
             {filter.showFavorites && favorites.length === 0
