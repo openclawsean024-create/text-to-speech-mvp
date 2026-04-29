@@ -18,11 +18,21 @@ interface Props {
   children: ReactNode
 }
 
+// Inner component that has access to the key
+function ClerkProviderInner({ publishableKey, children }: { publishableKey: string; children: ReactNode }) {
+  return <ClerkProvider publishableKey={publishableKey}>{children}</ClerkProvider>
+}
+
 export default function ClerkLoader({ children }: Props) {
   const [configured, setConfigured] = useState(false)
+  const [key, setKey] = useState('')
 
   useEffect(() => {
-    setConfigured(isClerkConfigured())
+    const c = isClerkConfigured()
+    setConfigured(c)
+    if (c) {
+      setKey((process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '').trim())
+    }
   }, [])
 
   // During SSR or when Clerk is not configured, render children without auth
@@ -30,6 +40,5 @@ export default function ClerkLoader({ children }: Props) {
     return <>{children}</>
   }
 
-  const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''
-  return <ClerkProvider publishableKey={key}>{children}</ClerkProvider>
+  return <ClerkProviderInner publishableKey={key}>{children}</ClerkProviderInner>
 }
