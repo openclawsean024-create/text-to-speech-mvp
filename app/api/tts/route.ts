@@ -159,9 +159,11 @@ async function synthesizeWithChunking(params: {
 }
 
 export async function POST(req: NextRequest) {
+  let engine = 'openai'
   try {
     const body = await req.json()
-    const { text, engine = 'openai', voice: frontendVoice, speed = 1.0, plan = 'free', apiKey: bodyApiKey, format = 'mp3' } = body
+    const { text, engine: bodyEngine, voice: frontendVoice, speed = 1.0, plan = 'free', apiKey: bodyApiKey, format = 'mp3' } = body
+    engine = bodyEngine || 'openai'
 
     const outputFormat = format === 'wav' ? 'wav' : 'mp3'
 
@@ -249,17 +251,20 @@ export async function POST(req: NextRequest) {
     console.error('[TTS] Error:', err)
     const message = err instanceof Error ? err.message : 'Unknown error'
 
-    if (message.includes('API key') || message.includes('401') || message.includes('403') || message.includes('Incorrect')) {
-      return NextResponse.json({ error: 'Invalid API key. Please check your key.' }, { status: 401 })
+    if (message.includes('API key') || message.includes('401') || message.includes('403') || message.includes('Incorrect') || message.includes('incorrect')) {
+      return NextResponse.json({ error: 'Invalid API key. Please check your key.', code: 'INVALID_API_KEY' }, { status: 401 })
     }
     if (message.includes('429')) {
-      return NextResponse.json({ error: 'Upstream API rate limit exceeded.' }, { status: 429 })
+      return NextResponse.json({ error: 'Upstream API rate limit exceeded. Please try again later.', code: 'UPSTREAM_RATE_LIMIT' }, { status: 429 })
     }
-    if (message.includes('insufficient_quota') || message.includes('quota')) {
-      return NextResponse.json({ error: 'API quota exceeded.' }, { status: 402 })
+    if (message.includes('insufficient_quota') || message.includes('quota') || message.includes('exceeded')) {
+      return NextResponse.json({ error: 'API quota exceeded on your provider account.', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+    }
+    if (message.includes('NO_API_KEY')) {
+      return NextResponse.json({ error: `No API key configured for ${engine}. Add your key in the dashboard or pass it in the request body.`, code: 'NO_API_KEY' }, { status: 400 })
     }
 
-    return NextResponse.json({ error: `TTS failed: ${message}` }, { status: 500 })
+    return NextResponse.json({ error: `TTS failed: ${message}`, code: 'TTS_ERROR' }, { status: 500 })
   }
 }
 

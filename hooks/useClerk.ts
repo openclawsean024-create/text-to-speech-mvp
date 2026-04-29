@@ -8,6 +8,8 @@ function isClerkConfigured(): boolean {
   return key.length > 0 && (key.startsWith('pk_test_') || key.startsWith('pk_live_'))
 }
 
+export { isClerkConfigured }
+
 // Returns null when Clerk is not configured or not yet loaded
 export function useClerkUser() {
   const [clerkState, setClerkState] = useState<{

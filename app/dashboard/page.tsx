@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useClerkUser } from '@/hooks/useClerk'
+import { SignedIn, SignedOut, UserButton, RedirectToSignIn } from '@clerk/nextjs'
 import {
   BarChart3, CreditCard, Key, Lock, RefreshCw, Calendar,
   TrendingUp, Globe, Zap, Rocket, Mic, Headphones, Volume,
@@ -45,7 +46,7 @@ export default function DashboardPage() {
 
   const fetchUsage = async () => {
     try {
-      const res = await fetch('/api/usage')
+      const res = await fetch(`/api/usage?plan=${plan}`)
       if (res.ok) {
         const data = await res.json()
         setUsage(data)
@@ -118,10 +119,10 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-2xl p-8 shadow-sm text-center max-w-sm">
-          <div className="text-4xl mb-4"><Lock size={14} className="inline" /></div>
+          <div className="text-4xl mb-4"><Lock size={48} className="inline" style={{ color: 'var(--primary)' }}/></div>
           <h1 className="text-xl font-bold mb-2">請先登入</h1>
           <p className="text-sm text-gray-500 mb-6">登入後才能使用控制台功能</p>
-          <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold" onClick={() => alert("請設定 Clerk API Key 以啟用登入功能")}>登入 / 註冊</button>
+          <RedirectToSignIn />
           <Link href="/" className="block mt-4 text-sm text-gray-400 hover:text-gray-600">
             ← 返回首頁
           </Link>
@@ -147,7 +148,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <Link href="/" className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full">← 首頁</Link>
             <Link href="/pricing" className="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full font-semibold"><CreditCard size={12} className="inline" /> 定價</Link>
-            <button className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full" onClick={() => alert("請設定 Clerk API Key 以啟用登入功能")}>登出</button>
+            <SignedIn><UserButton afterSignOutUrl="/" /></SignedIn>
           </div>
         </div>
       </nav>

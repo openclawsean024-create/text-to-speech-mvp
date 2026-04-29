@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { useClerkUser } from '@/hooks/useClerk'
+import { useClerkUser, isClerkConfigured } from '@/hooks/useClerk'
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import { useLocale } from '@/contexts/LangContext'
 import { useQueue, BatchTask } from '@/contexts/QueueContext'
 import { useVoiceContext } from '@/contexts/VoiceContext'
@@ -20,6 +21,7 @@ export const dynamic = 'force-dynamic'
 
 export default function HomePage() {
   const { user, isLoaded } = useClerkUser()
+  const [clerkConfigured, setClerkConfigured] = useState(false)
 
   const { locale, setLocale, t } = useLocale()
   const { tasks, addTask, removeTask, clearQueue: clearQueueCtx, processing, startProcessing, overallProgress, completedCount, failedCount } = useQueue()
@@ -96,6 +98,11 @@ export default function HomePage() {
   const estimatedWavKB = Math.round(charCount / 1000 * 88)
   const selectedEstKB = downloadFormat === 'wav' ? estimatedWavKB : estimatedMp3KB
 
+  // Check if Clerk is configured
+  useEffect(() => {
+    setClerkConfigured(isClerkConfigured())
+  }, [])
+
   useEffect(() => {
     if (user) {
       const saved = localStorage.getItem(`tts_settings_${(user as any)?.id || 'anonymous'}`)
@@ -119,12 +126,10 @@ export default function HomePage() {
     if (!text.trim()) { showStatus(t('status.noText'), 'error'); return }
     if (mode === 'api' && !user) { showStatus(t('status.loginRequired'), 'error'); return }
 
-    setIsConverting(true)
+    setAppState('generating')
     setProgress(0)
     setAudioUrl(null)
     setStatus(null)
-    setAppState('generating')
-
     try {
       if (mode === 'browser') {
         await convertBrowser()
@@ -134,8 +139,9 @@ export default function HomePage() {
     } catch (e: unknown) {
       showStatus(`${t('status.error')}: ` + (e instanceof Error ? e.message : String(e)), 'error')
       setAppState('idle')
+    } finally {
+      setIsConverting(false)
     }
-    setIsConverting(false)
     if (appState === 'generating') setAppState('complete')
   }
 
@@ -183,14 +189,27 @@ export default function HomePage() {
 
     if (!res.ok) {
       let msg = `HTTP ${res.status}`
+      let errCode = ''
       try {
         const ct = res.headers.get('content-type') || ''
         if (ct.includes('application/json')) {
           const err = await res.json()
           msg = err.error || err.message || msg
+          errCode = err.code || ''
         }
       } catch (_) {}
       setChunkProgress(null)
+
+      // Show user-friendly guidance based on error code
+      if (res.status === 429) {
+        msg = `使用量已達上限（${plan} 方案：${t('nav.pricing')}），請明天再試或升級方案`
+      } else if (res.status === 401 || errCode === 'INVALID_API_KEY') {
+        msg = 'API Key 無效，請至控制台更新你的 API Key'
+      } else if (res.status === 402 || errCode === 'QUOTA_EXCEEDED') {
+        msg = 'API 配額已用盡，請在 providers 網站確認用量或聯絡客服'
+      } else if (res.status === 400 && errCode === 'NO_API_KEY') {
+        msg = `尚未設定 ${engine} API Key，請至控制台新增或直接在上方輸入`
+      }
       throw new Error(msg)
     }
 
@@ -418,15 +437,23 @@ export default function HomePage() {
                 >EN</button>
               </div>
               <Link href="/pricing" className="btn-secondary text-xs"><CreditCard size={12} className="inline mr-1"/>{t('nav.pricing')}</Link>
-              {isLoaded && (
-                user ? (
-                  <>
+              {isLoaded && clerkConfigured && (
+                <>
+                  <SignedIn>
                     <Link href="/dashboard" className="btn-secondary text-xs"><BarChart3 size={12} className="inline mr-1"/>{t('nav.dashboard')}</Link>
-                    <button className="btn-ghost text-xs" onClick={() => alert(t('alert.clerk'))}>{t('nav.logout')}</button>
-                  </>
-                ) : (
-                  <button className="btn-primary text-xs !py-1.5 !px-4 !text-sm !rounded-xl" onClick={() => alert(t('alert.clerk'))}>{t('nav.login')}</button>
-                )
+                    <UserButton afterSignOutUrl="/" />
+                  </SignedIn>
+                  <SignedOut>
+                    <SignInButton mode="modal">
+                      <button className="btn-primary text-xs !py-1.5 !px-4 !text-sm !rounded-xl">{t('nav.login')}</button>
+                    </SignInButton>
+                  </SignedOut>
+                </>
+              )}
+              {isLoaded && !clerkConfigured && (
+                <span className="text-xs px-3 py-1.5 rounded-full" style={{ background: 'var(--surface-2)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
+                  僅本地模式
+                </span>
               )}
             </div>
           </div>
@@ -697,9 +724,16 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {!user && (
+                {!user && clerkConfigured && (
                   <div className="toast info text-sm">
-                    <Lightbulb size={12} className="inline" /> {t('mode.login.hint')} <button className="underline font-bold ml-1" style={{ color: 'inherit' }} onClick={() => alert(t('alert.clerk'))}>{t('mode.login.hint.btn')}</button> {t('mode.login.hint.suffix')}
+                    <Lightbulb size={12} className="inline" /> {t('mode.login.hint')} <SignInButton mode="modal">
+                      <button className="underline font-bold ml-1" style={{ color: 'inherit' }}>{t('mode.login.hint.btn')}</button>
+                    </SignInButton> {t('mode.login.hint.suffix')}
+                  </div>
+                )}
+                {!user && !clerkConfigured && (
+                  <div className="toast info text-sm">
+                    <Lightbulb size={12} className="inline" /> 請設定 Clerk API Key 才能啟用登入功能（詳見 .env.example）
                   </div>
                 )}
 
