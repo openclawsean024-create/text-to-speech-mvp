@@ -202,8 +202,15 @@ export default function PricingPage() {
         </div>
       </div>
 
-      <footer className="text-center py-6 text-xs" style={{ color: 'var(--text-3)' }}>
-        © 2026 文字轉語音 v2.0 · 支援多引擎 AI TTS
+      <footer className="text-center py-6 text-xs space-y-1.5" style={{ color: 'var(--text-3)' }}>
+        <div className="flex justify-center gap-3">
+          <a href="/privacy" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>隱私權政策</a>
+          <span>·</span>
+          <a href="/terms" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>服務條款</a>
+          <span>·</span>
+          <a href="/contact" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>聯絡我們</a>
+        </div>
+        <p>© {new Date().getFullYear()} 文字轉語音 v2.0 · 支援多引擎 AI TTS</p>
       </footer>
     </div>
   )

@@ -994,9 +994,16 @@ export default function HomePage() {
           )}
 
           {/* Footer */}
-          <div className="text-center pt-4 pb-8">
+          <div className="text-center pt-4 pb-8 space-y-2">
+            <div className="flex justify-center gap-4 text-xs" style={{ color: 'var(--text-3)' }}>
+              <a href="/privacy" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>隱私權政策</a>
+              <span>·</span>
+              <a href="/terms" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>服務條款</a>
+              <span>·</span>
+              <a href="mailto:alan@example.com" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>聯絡我們</a>
+            </div>
             <p className="text-xs" style={{ color: 'var(--text-3)' }}>
-              {t('footer.powered')}
+              © {new Date().getFullYear()} 文字轉語音 v2.0 · {t('footer.powered')}
             </p>
           </div>
         </main>
