@@ -173,12 +173,37 @@ KV_REST_API_TOKEN=...
 
 ---
 
-## 5. 已知限制
+### 2.4 頁面結構
+| 路徑 | 說明 | 認證 |
+|------|------|------|
+| `/` | 首頁（主要轉換介面） | - |
+| `/pricing` | 定價頁面，含方案比較與 FAQ | - |
+| `/login` | Clerk 登入頁 | - |
+| `/signup` | Clerk 註冊頁 | - |
+| `/dashboard` | 控制台：用量統計、API Key 管理、方案切換 | 必需 |
+| `/privacy` | 隱私權政策 | - |
+| `/terms` | 服務條款 | - |
+| `/contact` | 聯絡我們 | - |
+| `/not-found` | 404 找不到頁面（自訂設計） | - |
 
-1. **無真實付款整合**：目前方案切換為本地設定，尚未串接 Stripe/Clerk Billing
-2. **瀏覽器模式無下載**：瀏覽器 SpeechSynthesis API 不支援音訊匯出
-3. **Vercel KV 需付費**：使用 Upstash Redis，Vercel Hobby 計劃有連線數限制
-4. **批次處理無 API Key 設定**：批次模式目前使用預設引擎，無法個別指定 API Key
+### 2.5 SEO 與 Meta
+- `metadataBase`: `https://text-to-speech-mvp.vercel.app`
+- Open Graph image: `/screenshot.png` (1200×630)
+- Twitter Card: `summary_large_image`
+- robots.txt: `index: true, follow: true`
+- 完整 meta description + keywords（中文）
+
+### 2.6 法律頁面
+- **隱私權政策**（`/privacy`）：資料收集、第三方服務（Clerk/Vercel/OpenAI/ElevenLabs）、Cookies、資料主體權利、兒童隱私
+- **服務條款**（`/terms`）：服務說明、API Key 管理、使用量限制、禁止用途（違法/語音冒充/虛假訊息）、商業授權、智慧財產權、責任限制
+- **聯絡我們**（`/contact`）：電子郵件支援、回覆時間（1-3 工作天）
+- 所有法律頁面包含完整版權年份（`© {new Date().getFullYear()}`）
+
+### 2.7 Rate Limiting 說明
+- Free：每天 10 次，午夜 UTC 重置
+- Starter：每天 100 次
+- Pro：每天 1,000 次
+- HTTP 429 + 使用者友善提示（建議升級或明天再試）
 
 ---
 
@@ -215,4 +240,5 @@ npm run dev
 |------|------|------|
 | 1.0 | 2025-Q3 | 初始版本，單一引擎支援 |
 | 2.0 | 2026-Q2 | 多引擎支援、Clerk 認證、批次處理、產品化 |
-| 3.0 (進行中) | 2026-Q2 | 付費牆、API 完善、UX 優化 |
+| 3.0 | 2026-Q2 | 法律頁面（隱私權/服務條款/聯絡我們）、自訂 404、Footer 完善、SPEC.md 更新 |
+| 4.0 (進行中) | 2026-Q2 | 付費牆、Stripe 整合、完善 UX |
