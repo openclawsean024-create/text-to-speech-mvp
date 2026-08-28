@@ -3,15 +3,17 @@ import { auth } from '@clerk/nextjs/server'
 import { getUserApiKeys, checkRateLimit, incrementUsage } from '@/lib/db'
 import { synthesize } from '@/lib/tts-engines'
 
-const ALLOWED_ENGINES = ['openai', 'elevenlabs', 'kokoro']
+const ALLOWED_ENGINES = ['openai', 'elevenlabs', 'kokoro', 'azure', 'google']
 
 const VOICE_MAP: Record<string, Record<string, string>> = {
-  'zh-CN':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-CN-female' },
-  'zh-TW':      { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'zh-CN-male'   },
-  'en-US':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US-female' },
-  'ja-JP':      { openai: 'nova',     elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ja-JP-female'  },
-  'ko-KR':      { openai: 'fable',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ko-KR-female'  },
-  'en-US-male': { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'en-US-male'   },
+  'zh-CN':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-CN-female',    azure: 'zh-CN-XiaoxiaoNeural',  google: 'cmn-CN-Wavenet-A' },
+  'zh-TW':      { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'zh-CN-male',      azure: 'zh-TW-HsiaoChenNeural', google: 'cmn-TW-Wavenet-A' },
+  'en-US':      { openai: 'alloy',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'en-US-female',    azure: 'en-US-JennyNeural',     google: 'en-US-Wavenet-F' },
+  'ja-JP':      { openai: 'nova',     elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ja-JP-female',    azure: 'ja-JP-NanamiNeural',    google: 'ja-JP-Wavenet-A' },
+  'ko-KR':      { openai: 'fable',    elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'ko-KR-female',    azure: 'ko-KR-SunHiNeural',     google: 'ko-KR-Wavenet-A' },
+  'en-US-male': { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'en-US-male',      azure: 'en-US-GuyNeural',       google: 'en-US-Wavenet-D' },
+  'zh-TW-male': { openai: 'onyx',     elevenlabs: 'AZnzlk1XvdvUeBnXmlZG', kokoro: 'zh-CN-male',      azure: 'zh-TW-YunJheNeural',    google: 'cmn-TW-Wavenet-C' },
+  'zh-TW-soft': { openai: 'shimmer',  elevenlabs: '21m00Tcm4TlvDq8ikWAM', kokoro: 'zh-CN-female',    azure: 'zh-TW-HsiaoChenNeural', google: 'cmn-TW-Wavenet-A' },
 }
 
 function resolveVoice(engine: string, frontendVoice?: string) {
@@ -105,11 +107,14 @@ async function synthesizeWithChunking(params: {
   speed: number
   apiKey: string
   format: 'mp3' | 'wav'
+  emotion?: string
+  style?: string
+  region?: string
 }) {
-  const { text, engine, voice, speed, apiKey, format } = params
+  const { text, engine, voice, speed, apiKey, format, emotion, style, region } = params
 
   if (text.length <= CHUNK_SIZE) {
-    const result = await synthesize({ engine, text: text.trim(), voice, speed, apiKey })
+    const result = await synthesize({ engine, text: text.trim(), voice, speed, apiKey, emotion, style, region })
 
     let audio = result.audio
     let contentType = result.contentType
@@ -127,7 +132,7 @@ async function synthesizeWithChunking(params: {
   const audioChunks: Buffer[] = []
 
   for (let i = 0; i < chunks.length; i++) {
-    const chunkResult = await synthesize({ engine, text: chunks[i], voice, speed, apiKey })
+    const chunkResult = await synthesize({ engine, text: chunks[i], voice, speed, apiKey, emotion, style, region })
     audioChunks.push(chunkResult.audio)
   }
 
@@ -158,11 +163,39 @@ async function synthesizeWithChunking(params: {
   }
 }
 
+function getEnvForEngine(engine: string): { key: string | null; region?: string | null } {
+  switch (engine) {
+    case 'openai':
+      return { key: process.env.OPENAI_API_KEY ?? null }
+    case 'elevenlabs':
+      return { key: process.env.ELEVENLABS_API_KEY ?? null }
+    case 'kokoro':
+      return { key: process.env.KOKORO_API_KEY ?? process.env.INFERENCE_SH_API_KEY ?? null }
+    case 'azure':
+      return { key: process.env.AZURE_SPEECH_KEY ?? process.env.AZURE_API_KEY ?? null, region: process.env.AZURE_SPEECH_REGION ?? null }
+    case 'google':
+      return { key: process.env.GOOGLE_TTS_API_KEY ?? process.env.GOOGLE_API_KEY ?? null }
+    default:
+      return { key: null }
+  }
+}
+
 export async function POST(req: NextRequest) {
   let engine = 'openai'
   try {
     const body = await req.json()
-    const { text, engine: bodyEngine, voice: frontendVoice, speed = 1.0, plan = 'free', apiKey: bodyApiKey, format = 'mp3' } = body
+    const {
+      text,
+      engine: bodyEngine,
+      voice: frontendVoice,
+      speed = 1.0,
+      plan = 'free',
+      apiKey: bodyApiKey,
+      format = 'mp3',
+      emotion,
+      style,
+      region,
+    } = body
     engine = bodyEngine || 'openai'
 
     const outputFormat = format === 'wav' ? 'wav' : 'mp3'
@@ -182,12 +215,14 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Resolve API Key ───────────────────────────────────────────
-    // Priority: body.apiKey (explicit key, no login required) > env var
-    const apiKey = (bodyApiKey as string | undefined)?.trim() || process.env[`${engine.toUpperCase()}_API_KEY`] || null
+    // Priority: body.apiKey (explicit key, no login required) > per-engine env var
+    const envCfg = getEnvForEngine(engine)
+    const apiKey = (bodyApiKey as string | undefined)?.trim() || envCfg.key
+    const resolvedRegion = (region as string | undefined)?.trim() || envCfg.region || undefined
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: `No API key for ${engine}. Pass apiKey in request body or set ${engine.toUpperCase()}_API_KEY env var.`, code: 'NO_API_KEY' },
+        { error: `No API key for ${engine}. Pass apiKey in request body or set the corresponding env var.`, code: 'NO_API_KEY' },
         { status: 400 }
       )
     }
@@ -221,6 +256,9 @@ export async function POST(req: NextRequest) {
       speed: parseFloat(speed),
       apiKey,
       format: outputFormat,
+      emotion: emotion as string | undefined,
+      style: style as string | undefined,
+      region: resolvedRegion,
     })
 
     // ── Track Usage (logged-in users only) ───────────────────────
@@ -231,7 +269,7 @@ export async function POST(req: NextRequest) {
     const ext = outputFormat
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blob = new Blob([result.audio as any], { type: result.contentType })
-    const filename = `tts-output-${Date.now()}.${ext}`
+    const filename = `tts-output-${engine}-${Date.now()}.${ext}`
     return new NextResponse(blob, {
       status: 200,
       headers: {
