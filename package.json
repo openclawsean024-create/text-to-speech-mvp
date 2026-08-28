@@ -5,9 +5,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "pnpm run smoke && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/ci-smoke.js",
+    "ci": "pnpm run typecheck && pnpm run lint && pnpm run smoke && pnpm run build",
+    "prebuild": ""
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",
@@ -26,7 +30,11 @@
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.7.0"

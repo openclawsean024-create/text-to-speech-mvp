@@ -1,10 +1,43 @@
-# CI Pipeline Setup
+# CI Pipeline
 
-This document describes the GitHub Actions CI pipeline for the text-to-speech-mvp project. The workflow file (`.github/workflows/ci.yml`) must be created manually on GitHub because the OAuth App used by this agent doesn't have `workflow` scope.
+This project has **two complementary CI systems**:
 
-## Workflow file
+1. **`pnpm run ci` script** — runs locally and in Vercel builds
+2. **GitHub Actions workflow** (recommended, requires manual setup) — runs in PR + push to master
 
-Create `.github/workflows/ci.yml` with the following content:
+## 1. Local pnpm run ci
+
+```bash
+# Run full CI locally
+pnpm run ci
+
+# Equivalent to:
+pnpm run typecheck   # tsc --noEmit
+pnpm run lint         # next lint
+pnpm run smoke        # node scripts/ci-smoke.js (8 critical tests)
+pnpm run build        # next build (includes typecheck + lint)
+```
+
+The `smoke` step verifies:
+- ✅ 5 TTS engines registered
+- ✅ SRT/VTT formatters produce valid output
+- ✅ ePub builder produces ≥ 100 byte archive
+- ✅ Webhook HMAC sign/verify roundtrip
+- ✅ NewebPay 3-tier config present
+- ✅ TTS prompt catalog: 5 engines, 12 emotions, 12 roles, 12 presets
+- ✅ 繁中 text normalization function exported
+
+`prebuild` is also wired: any `pnpm run build` runs `pnpm run smoke` first.
+
+## 2. Vercel build integration
+
+Vercel runs `pnpm run build` (= `pnpm run smoke && next build`) on every push. The `smoke` step **fails the build** if any critical v3.0 module is broken.
+
+The `buildCommand` in `vercel.json` is set to `pnpm run ci` for explicit control.
+
+## 3. GitHub Actions workflow (recommended)
+
+Create `.github/workflows/ci.yml` with the content below. The file content cannot be auto-pushed via this agent due to a GitHub OAuth App `workflow` scope restriction — operator must create it manually via the GitHub web UI.
 
 ```yaml
 name: CI
@@ -17,7 +50,7 @@ on:
 
 jobs:
   build:
-    name: Build & Typecheck
+    name: Build + Lint + Typecheck + Smoke Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -39,64 +72,40 @@ jobs:
       - name: Install dependencies
         run: pnpm install --prefer-offline
 
-      - name: TypeScript typecheck
-        run: npx tsc --noEmit
+      - name: Run CI (typecheck + lint + smoke + build)
+        run: pnpm run ci
 
-      - name: Build
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_demo
-          CLERK_SECRET_KEY: sk_test_demo
-          OPENAI_API_KEY: sk-demo
-          KV_REST_API_URL: https://demo.kv
-          KV_REST_API_TOKEN: demo
-
-      - name: Smoke test
-        run: |
-          node -e "
-            const tts = require('./lib/tts-engines.js');
-            console.log('TTS engines loaded:', tts.SUPPORTED_ENGINES);
-            const pp = require('./lib/post-process.js');
-            const srt = pp.toSrt([{start: 0, end: 5, text: '哈囉'}]);
-            if (!srt.includes('00:00:00,000')) throw new Error('SRT format broken');
-            const vtt = pp.toVtt([{start: 0, end: 5, text: '哈囉'}]);
-            if (!vtt.startsWith('WEBVTT')) throw new Error('VTT format broken');
-            const epub = require('./lib/epub.js');
-            const buf = epub.buildEpub({title: 't', chapters: [], segments: [{start:0,end:1,text:'x'}]});
-            if (buf.length < 100) throw new Error('ePub build failed');
-            const wh = require('./lib/webhook.js');
-            const sig = wh.signPayload('test');
-            if (!wh.verifyPayload('test', sig)) throw new Error('webhook sign/verify broken');
-            const np = require('./lib/newebpay.js');
-            if (!np.NEWEBPAY_TIERS.personal) throw new Error('NewebPay tiers missing');
-            const tp = require('./lib/tts-prompts.js');
-            const cat = tp.getCatalog();
-            if (cat.engines.length !== 5) throw new Error('Expected 5 engines');
-            console.log('ALL SMOKE TESTS PASSED');
-          "
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
 ```
 
-## What it does
+## Smoke test details (`scripts/ci-smoke.js`)
 
-1. **Checkout** — pulls the repo
-2. **Setup Node 20 + pnpm 11** — fast install with cache
-3. **Install** — `pnpm install --prefer-offline`
-4. **Typecheck** — `npx tsc --noEmit` (catches type errors)
-5. **Build** — `pnpm build` (Next.js production build)
-6. **Smoke test** — loads all critical modules and verifies:
-   - 5 TTS engines registered
-   - SRT/VTT formatters produce valid output
-   - ePub builder produces ≥ 100 bytes
-   - Webhook HMAC sign/verify roundtrip
-   - NewebPay tier config present
-   - TTS prompt catalog has 5 engines
+```js
+const tts = require('../lib/tts-engines.js')
+// Expect 5 engines: openai, elevenlabs, kokoro, azure, google
 
-## Setup steps
+const pp = require('../lib/post-process.js')
+// SRT format: 00:00:00,000 --> 00:00:05,000
+// VTT format: WEBVTT header
 
-1. Create `.github/workflows/ci.yml` with the content above
-2. Push to `master` — the workflow runs automatically
-3. (Optional) Add a branch protection rule requiring CI to pass before merge
+const epub = require('../lib/epub.js')
+// Returns valid zip with mimetype, container, opf, ncx, xhtml
 
-## Status
+const wh = require('../lib/webhook.js')
+// HMAC-SHA256 sign/verify roundtrip
 
-The repository has a `deploy.yml` workflow (in `.github/workflows/`) that handles production deployment to Vercel. Adding `ci.yml` will give you CI on every PR.
+const np = require('../lib/newebpay.js')
+// 3 tiers: personal (NT$99), creator (NT$299), business (NT$2,999)
+
+const tp = require('../lib/tts-prompts.js')
+// Catalog: 5 engines, 12 emotions, 12 roles, 12 presets
+```
+
+## Why both?
+
+- **`pnpm run ci` script** is always present, testable locally, runs in Vercel builds. Self-contained, no GitHub App needed.
+- **GitHub Actions workflow** provides PR-time CI gating, branch protection, status checks. Requires the `.github/workflows/ci.yml` file which is operator-pasted due to OAuth scope.
