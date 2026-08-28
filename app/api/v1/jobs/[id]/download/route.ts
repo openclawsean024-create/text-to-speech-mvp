@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 
   const format = (req.nextUrl.searchParams.get('format') || 'srt').toLowerCase()
-  let content: string | null = null
+  let content: string | Buffer | null = null
   let contentType = 'text/plain; charset=utf-8'
   let ext = 'txt'
   let filename = job.filename.replace(/\.[^.]+$/, '') + '-output'
@@ -59,7 +59,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       ext = 'vtt'
       break
     case 'epub':
-      content = job.epub
+      // ePub is stored as base64 in job (KV size limit)
+      if (job.epub) {
+        content = Buffer.from(job.epub, 'base64')
+      }
       contentType = FORMAT_INFO.epub.contentType
       ext = 'epub'
       break
@@ -98,7 +101,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: `Output not available for format ${format}`, code: 'EMPTY' }, { status: 404 })
   }
 
-  return new NextResponse(content, {
+  // NextResponse accepts string, Blob, ReadableStream — wrap Buffer as Uint8Array
+  const body = typeof content === 'string' ? content : new Uint8Array(content)
+
+  return new NextResponse(body, {
     status: 200,
     headers: {
       'Content-Type': contentType,

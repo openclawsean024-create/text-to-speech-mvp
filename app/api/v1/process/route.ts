@@ -13,6 +13,8 @@ import { findApiKey, extractBearer, checkApiRateLimit, TIER_LIMITS } from '@/lib
 import { transcribe } from '@/lib/whisper'
 import { segmentChapters, summarize, toSrt, toVtt } from '@/lib/post-process'
 import { dispatch } from '@/lib/webhook'
+import { buildEpub } from '@/lib/epub'
+import { getGlossary, toWhisperPrompt } from '@/lib/glossary'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // 60s for synchronous short jobs; longer ones go async
@@ -68,13 +70,26 @@ async function runPipeline(jobId: string) {
     const openaiKey = process.env.OPENAI_API_KEY
     const groqKey = process.env.GROQ_API_KEY
 
+    // Merge user's stored glossary (if any) with the per-call glossary param
+    let effectiveGlossary = job.settings.glossary || ''
+    if (job.userId && !effectiveGlossary) {
+      try {
+        // Use the API key tier (stored on the job) or default to free
+        const tier = job.apiKeyId ? 'personal' : 'free'
+        const userGlossary = await getGlossary(job.userId, tier)
+        effectiveGlossary = userGlossary.words.join('、')
+      } catch {
+        // ignore — fall back to per-call glossary
+      }
+    }
+
     // 1. Transcribe
     const transcript = await transcribe({
       audio: audioRef.audio,
       mimeType: job.mimeType,
       filename: job.filename,
       language: job.settings.language || 'zh',
-      glossary: job.settings.glossary || '',
+      glossary: effectiveGlossary,
       openaiKey,
       groqKey,
     })
@@ -85,7 +100,7 @@ async function runPipeline(jobId: string) {
       chapters = await segmentChapters({
         segments: transcript.segments,
         openaiKey,
-        glossary: job.settings.glossary || '',
+        glossary: effectiveGlossary,
         targetChapters: 6,
       })
     }
@@ -108,8 +123,29 @@ async function runPipeline(jobId: string) {
       vtt = toVtt(transcript.segments)
     }
 
-    // 5. ePub (deferred to WS5 — placeholder)
-    const epub = null
+    // 5. ePub (F-006) — only generated when explicitly requested
+    let epub: string | null = null
+    if (job.settings.epub === true) {
+      try {
+        const epubBuf = buildEpub({
+          title: job.filename.replace(/\.[^.]+$/, ''),
+          author: 'Hermes TTS Podcast',
+          language: job.settings.language === 'en' ? 'en-US' : 'zh-TW',
+          filename: job.filename,
+          chapters: chapters || [],
+          segments: transcript.segments,
+          summary: summary || undefined,
+        })
+        // Store ePub as base64 in job (KV < 100KB for typical podcast epub; chunked otherwise)
+        if (epubBuf.length <= 50_000) {
+          epub = epubBuf.toString('base64')
+        } else {
+          console.warn(`[epub] ${epubBuf.length} bytes > 50KB, skipping in-job storage`)
+        }
+      } catch (err) {
+        console.warn('[epub] build failed:', err instanceof Error ? err.message : String(err))
+      }
+    }
 
     // Update job with results
     const durationSec = transcript.duration || job.durationSec
