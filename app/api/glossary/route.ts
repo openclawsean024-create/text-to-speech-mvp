@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth().catch(() => ({ userId: null as string | null }))
     if (!userId) {
       // Demo mode — return empty public glossary
       return NextResponse.json({
@@ -38,7 +38,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth().catch(() => ({ userId: null as string | null }))
     if (!userId) {
       return NextResponse.json({ error: 'Authentication required', code: 'NO_AUTH' }, { status: 401 })
     }

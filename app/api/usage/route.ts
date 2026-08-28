@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { getTodayUsage, getUsageHistory, getMonthlyTotal, LIMITS } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth()
+  const { userId } = await auth().catch(() => ({ userId: null as string | null }))
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
     let userId: string | null = null
     let rateLimitInfo = { allowed: true, limit: 999, used: 0, remaining: 999, resetsAt: '' }
     try {
-      const authResult = await auth()
+      const authResult = await auth().catch(() => ({ userId: null as string | null })).catch(() => ({ userId: null as string | null }))
       userId = authResult.userId
     } catch {
       // Not logged in — skip rate limiting and usage tracking

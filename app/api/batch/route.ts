@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
     // ── Auth (optional for batch) ───────────────────────────────
     let userId: string | null = null
     try {
-      const authResult = await auth()
+      const authResult = await auth().catch(() => ({ userId: null as string | null })).catch(() => ({ userId: null as string | null }))
       userId = authResult.userId
     } catch { /* not logged in */ }
 

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     if (apiKeyRecord && job.apiKeyId === apiKeyRecord.id) authorized = true
   } else {
     try {
-      const { userId } = await auth()
+      const { userId } = await auth().catch(() => ({ userId: null as string | null }))
       if (userId && job.userId === userId) authorized = true
     } catch { /* */ }
   }
