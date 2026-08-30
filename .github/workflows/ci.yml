@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# Cancel in-progress runs on the same branch when a new commit lands.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: pnpm run ci (typecheck + lint + smoke + build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+
+      - name: Setup Node 20
+        uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6  # v6.1.0
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2  # v4.1.0
+        with:
+          version: '9'
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # The project's AGENTS.md defines the single CI entry point:
+      #   pnpm run ci = typecheck && lint && smoke && build
+      # We deliberately do NOT add new CI steps; new flows must go into
+      # scripts/ci-smoke.js first.
+      - name: Run full CI
+        run: pnpm run ci
+        env:
+          # Demo mode defaults — no real Clerk/KV/OpenAI needed for typecheck,
+          # lint, and smoke. Build still needs at minimum OPENAI_API_KEY set
+          # to a non-empty placeholder.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'ci-demo-placeholder-not-used' }}
+          NEXT_PUBLIC_DEMO_MODE: 'true'
