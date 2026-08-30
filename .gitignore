@@ -8,5 +8,7 @@ node_modules/
 .env*.local
 .next/
 tsconfig.tsbuildinfo
-pnpm-lock.yaml
-pnpm-workspace.yaml
+# pnpm-lock.yaml is intentionally NOT ignored — AGENTS.md mandates pnpm as
+# the package manager, and `pnpm install --frozen-lockfile` (which the CI
+# workflow at .github/workflows/ci.yml requires) will fail without a tracked
+# lockfile. pnpm-workspace.yaml is similarly kept available for future use.
