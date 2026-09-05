@@ -1,0 +1,26 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true
+  unrs-resolver: true
+  "@swc/core": true
+  "@parcel/watcher": true
+  better-sqlite3: true
+  core-js: true
+  "@tailwindcss/oxide": true
+  "@oxc-resolver/binding-darwin-arm64": true
+  "@oxc-resolver/binding-darwin-x64": true
+  "@oxc-resolver/binding-linux-arm64-gnu": true
+  "@oxc-resolver/binding-linux-arm64-musl": true
+  "@oxc-resolver/binding-linux-x64-gnu": true
+  "@oxc-resolver/binding-linux-x64-musl": true
+  "@oxc-resolver/binding-linux-arm-gnueabihf": true
+  "@oxc-resolver/binding-win32-x64-msvc": true
+  "@oxc-resolver/binding-win32-arm64-msvc": true
+  esbuild-plugin-sharp: true
+  "@biomejs/biome": true
+  "@types/node": true
+  "@clerk/shared": true
+  "es5-ext": true
