@@ -5,6 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 # Cancel in-progress runs on the same branch when a new commit lands.
 concurrency:

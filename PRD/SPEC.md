@@ -1,9 +1,25 @@
-# 文字轉語音 MVP — 規格計劃書 v3.0（forced upgrade：TTS 介面 × Hermes 雙引擎）
+# 文字轉語音 MVP — 規格計劃書 v3.0.2（批次 C fleet infra upgrade）
 
-> **版本**：v3.0｜**更新日期**：2026-07-19｜**維護者**：Sophia (CPO) for Sean
+> **版本**：v3.0.2｜**更新日期**：2026-09-06｜**維護者**：Sophia (CPO) for Sean
 > **對接技術**：Alan (CTO)｜**對接 Repo**：[openclawsean024-create/text-to-speech-mvp](https://github.com/openclawsean024-create/text-to-speech-mvp)
 > **Live**：https://text-to-speech-mvp.vercel.app
 > **Sweet Spot**：7/10（**Hermes TTS 雙引擎介面 + 繁中 Podcast 後製工廠（章節+字幕+摘要）**）→ 從 v2.2.2 的「後製 only」升級為「**TTS 介面 + 後製**」雙甜蜜點
+
+---
+
+## 0.1 v3.0.2 改版摘要 (What's new in v3.0.2)
+
+本批次（批次 C — Sean 10-repo-fleet 基礎建設）不重做 SPEC 內容，僅做 **infra 對齊**：
+
+| v3.0 → v3.0.2 差異 | 為何改 | 對誰重要 |
+|---|---|---|
+| 版本升級為 **v3.0.2 / 2026-09-06** | 與 fleet 其他 repo 的 PRD 版本對齊 | 維護者 / fleet 監控 |
+| `.github/workflows/deploy.yml` branch 從 `main` 改為 `master` | 與實際 production branch 對齊（原檔從未生效） | CI / 部署 |
+| 新增 `e2e/` 與 `e2e/smoke.test.mjs` | 補強 Next.js App Router 路由結構的 E2E 檢查 | CI / 維護者 |
+| 新增 `PRD/CHANGELOG.md` | 記錄批次 C 的 infra 改動 | 維護者 |
+| 既有的 `pnpm run ci`（typecheck + lint + smoke + build）已全綠 | — | — |
+
+**SPEC 主體（§0–§15）內容不變**，詳細 Sweet Spot、商業化公式、ADR 仍以 v3.0 為準。
 
 ---
 

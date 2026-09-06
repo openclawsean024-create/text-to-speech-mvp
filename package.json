@@ -10,7 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/ci-smoke.js",
-    "ci": "pnpm run typecheck && pnpm run lint && pnpm run smoke && pnpm run build",
+    "ci": "pnpm run typecheck && pnpm run lint && pnpm run smoke && pnpm run build && node --test e2e/smoke.test.mjs",
     "prebuild": ""
   },
   "dependencies": {
