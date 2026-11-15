@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    name: pnpm run ci (typecheck + lint + smoke + build)
+    name: pnpm run ci (typecheck + lint + test + build + e2e)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,15 +33,16 @@ jobs:
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      # The project's AGENTS.md defines the single CI entry point:
-      #   pnpm run ci = typecheck && lint && smoke && build
-      # We deliberately do NOT add new CI steps; new flows must go into
-      # scripts/ci-smoke.js first.
+      # AGENTS.md 定義單一 CI 進入點：
+      #   pnpm run ci = typecheck && lint && test && build(含 smoke) && e2e
+      # 任一階段失敗整個 job 即失敗；新增檢查請先寫進 package.json script。
+      # 單元／整合測試一律 Mock TTS、不連網（vitest.config.ts + tests/setup.ts）。
       - name: Run full CI
         run: pnpm run ci
         env:
-          # Demo mode defaults — no real Clerk/KV/OpenAI needed for typecheck,
-          # lint, and smoke. Build still needs at minimum OPENAI_API_KEY set
-          # to a non-empty placeholder.
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'ci-demo-placeholder-not-used' }}
+          # Demo mode：不需要真實的 Clerk／KV／引擎金鑰。
+          # CI 不注入任何 repo secret；OPENAI_API_KEY 只是讓 build 通過的占位字串，
+          # 測試階段會被 tests/setup.ts 清除，且合成路徑一律走 Mock。
+          OPENAI_API_KEY: 'ci-demo-placeholder-not-used'
+          TTS_PROVIDER: 'mock'
           NEXT_PUBLIC_DEMO_MODE: 'true'

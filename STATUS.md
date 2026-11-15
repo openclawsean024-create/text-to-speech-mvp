@@ -1,8 +1,31 @@
 # Status — 繁中 TTS 與有聲書工作台（text-to-speech-mvp）
 
-- State：🟡 **PRD 重建完成／M1 尚未開發**（2026-11-16）
+- State：🟡 **M1 開發中**（分支 `feat/m1`，自 `chore/prd-rebuild` 分出；2026-11-16）
 - 本次性質：文件重建（`PRD/SPEC.md`、`GOAL.md`、`AGENTS.md`、`SOP.md`、`STATUS.md`），未修改任何功能程式碼、設定或測試。
 - 基準 commit：`master` @ `96b2eac`；文件分支 `chore/prd-rebuild`（Draft PR）。
+
+## M1 進度（GOAL AC-001～AC-009）
+
+| AC | 內容 | 狀態 | 測試（`pnpm test -- <關鍵字>`） | 證據 |
+|---|---|---|---|---|
+| AC-001 | CI 可重跑 | ✅ 完成（GHA run 連結待 PR 補上） | `ci-config`（`tests/unit/ci-config.test.ts`，5 案例） | `pnpm install --frozen-lockfile` exit 0；`pnpm run ci` exit 0 |
+| AC-002 | 電子書解析併入 | 未開始 | — | — |
+| AC-003 | TTS 測試模式 | 未開始 | — | — |
+| AC-004 | 有聲書轉換流程（Mock） | 未開始 | — | — |
+| AC-005 | 按字數計量與額度 | 未開始 | — | — |
+| AC-006 | 繁中發音校正詞庫 | 未開始 | — | — |
+| AC-007 | 自有內容聲明與存取控制 | 未開始 | — | — |
+| AC-008 | 方案與 tier 由伺服器端決定 | 未開始 | — | — |
+| AC-009 | 合併紀錄與文件一致 | 未開始 | — | — |
+
+### AC-001 決策紀錄
+
+- **`pnpm-workspace.yaml`**：補上 `packages: ['.']`。pnpm 9 只要偵測到 workspace 檔就要求 `packages` 非空，原檔只有 `allowBuilds`，導致 `pnpm install` 與所有 `pnpm` 指令以 `packages field missing or empty` 失敗。保留原有 `allowBuilds` 清單不動。
+- **Lockfile：只保留 `pnpm-lock.yaml`，刪除 `package-lock.json`**。理由：(1) GHA `ci.yml`／`deploy.yml`、`vercel.json` 的 `buildCommand` 與 `AGENTS.md` 都以 pnpm 為唯一套件管理器；(2) `package-lock.json` 從未被任何流程使用，兩份鎖定檔並存時實際安裝版本會與 npm 鎖定檔漂移，造成「本機可跑、CI 失敗」；(3) 新增測試框架後只需要維護一份鎖定檔。
+- **測試框架**：vitest 2（與 `ebook-to-audiobook` 相同，方便移植測試）。`pnpm test` = `vitest run`；設定在 `vitest.config.mts`，`tests/setup.ts` 把 `global.fetch` 換成呼叫即拋錯的 stub。
+- **`pnpm run ci`** = `typecheck && lint && test && build && e2e`，以 `&&` 串接，任一階段失敗即失敗；`build` 內含原有的 `smoke`。新增 `pnpm run e2e`（原本沒有對應 script）。
+- **GHA `ci.yml`**：job 名稱與註解更新；`OPENAI_API_KEY` 改為固定占位字串、不再讀取 repo secret（CI 不需要也不應該拿到真實金鑰），並加上 `TTS_PROVIDER=mock`。
+- ⚠️ **合併後的連帶影響**：`deploy.yml` 與 `ci.yml` 是同一個安裝問題而失敗；本 PR 合併到 `master` 後 `deploy.yml` 會恢復運作並嘗試 `vercel --prod` 部署。是否要合併、何時部署由 Sean 決定（本次未改動 `deploy.yml`）。
 
 ## 與 Notion 商品資料庫的對應
 
