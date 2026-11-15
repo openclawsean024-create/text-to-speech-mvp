@@ -7,6 +7,8 @@ import { BookFileError, parseBookFile } from '@/lib/audiobook/extract'
 import { MAX_FILE_BYTES } from '@/lib/audiobook/types'
 import { summarizeJob } from '@/lib/audiobook/jobs'
 import { AudiobookRequestError, mockMaxChars, startAudiobookConversion } from '@/lib/audiobook/service'
+import { identityUserId } from '@/lib/identity'
+import { lexiconTransformer } from '@/lib/lexicon'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -117,6 +119,8 @@ export async function POST(req: NextRequest) {
       engine: upload.engine,
       voice: upload.voice,
       speed: upload.speed,
+      // 發音校正詞庫（AC-006）：只影響送進引擎的文字，字幕與計費用原文
+      transformText: await lexiconTransformer(identityUserId(identity)),
     })
     const summary = summarizeJob(outcome.job)
     if (!outcome.ok) {

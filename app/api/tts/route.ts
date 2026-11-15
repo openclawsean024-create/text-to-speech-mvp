@@ -5,6 +5,7 @@ import { resolveServerPlan } from '@/lib/billing/plans'
 import { countBillableChars } from '@/lib/billing/char-count'
 import { reserveChars, commitChars, refundChars, quotaExceededBody, type Reservation } from '@/lib/billing/usage'
 import { isMockTtsMode } from '@/lib/tts/mode'
+import { lexiconTransformer } from '@/lib/lexicon'
 import {
   SUPPORTED_ENGINES,
   getEngineEnvConfig,
@@ -81,11 +82,15 @@ export async function POST(req: NextRequest) {
     reservation = reserved.reservation
     const quota = reserved.status
 
+    // ── 發音校正詞庫：計費已用原文計算，送進引擎的是校正後文字（AC-006）──
+    const applyLexicon = await lexiconTransformer(userId)
+    const spokenText = applyLexicon(text.trim())
+
     // ── Synthesize（每個片段只合成一次）──────────────────────────
     const parsedSpeed = parseFloat(speed)
     const result = await synthesizeLongText({
       engine,
-      text: text.trim(),
+      text: spokenText,
       voice: typeof frontendVoice === 'string' ? frontendVoice : undefined,
       speed: Number.isFinite(parsedSpeed) ? parsedSpeed : 1.0,
       apiKey: byokKey || null,

@@ -13,7 +13,7 @@
 | AC-003 | TTS 測試模式 | ✅ 完成 | `tts-provider`（`tests/unit/tts-provider.test.ts` 26 案例；`tests/integration/tts-provider.routes.test.ts` 9 案例） | `global.fetch` 為呼叫即拋錯的 stub、`lib/tts-engines` 換成拋錯間諜；`/api/tts`（5 引擎）、`/api/batch`、`/api/preview` 全部通過，外呼 0 次 |
 | AC-004 | 有聲書轉換流程（Mock） | ✅ 完成 | audiobook.integration（tests/integration/audiobook.integration.test.ts，18 案例）；audio（14）、subtitles（9）為 EB 測試移植 | 3 章 fixture：3 個章節輸出、檔名 {slug}-chapter-XX、SRT／VTT 各 ≥1 段、Mock 呼叫次數＝片段數；進度 done 100%；中途失敗不重試 |
 | AC-005 | 按字數計量與額度 | ✅ 完成（計費字數規則與額度數值【待 Sean 定案】） | billing（tests/unit/billing.test.ts 27 案例；tests/integration/billing.routes.test.ts 11 案例） | 固定計數案例（全形標點、英數、空白、零寬、emoji、NFC）；剛好用完 200、超額 402、合成失敗不扣量、跨月重置；/api/usage 回傳本月字數／上限／剩餘 |
-| AC-006 | 繁中發音校正詞庫 | 未開始 | — | — |
+| AC-006 | 繁中發音校正詞庫 | ✅ 完成 | lexicon（tests/unit/lexicon.test.ts 10 案例；tests/integration/lexicon.routes.test.ts 8 案例） | 最長匹配、同句多詞條、不重疊、使用者覆蓋系統；Mock 收到替換後文字、計費以原文計；/api/tts、/api/batch、/api/audiobook 皆套用；與 Whisper 詞彙表（glossary:）資料分開 |
 | AC-007 | 自有內容聲明與存取控制 | ✅ 完成 | access-control（tests/integration/access-control.test.ts，16 案例）、share-link（5 案例） | 未聲明 400、他人 userId 403、匿名 401、擁有者 200（/api/v1/jobs 與 /api/audiobook 皆同）；聲明版本與時間戳記隨工作保存；分享連結只含設定參數 |
 | AC-008 | 方案與 tier 由伺服器端決定 | ✅ 完成 | `tier-guard`（`tests/integration/tier-guard.test.ts`，12 案例） | `/api/tts`、`/api/batch` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage?plan=` 皆不採信；`/api/v1/keys` 匿名 401、無訂閱建立付費 tier 403 |
 | AC-009 | 合併紀錄與文件一致 | 未開始 | — | — |

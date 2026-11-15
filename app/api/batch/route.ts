@@ -5,6 +5,7 @@ import { resolveServerPlan } from '@/lib/billing/plans'
 import { countBillableChars } from '@/lib/billing/char-count'
 import { reserveChars, commitChars, refundChars, quotaExceededBody } from '@/lib/billing/usage'
 import { isMockTtsMode } from '@/lib/tts/mode'
+import { lexiconTransformer } from '@/lib/lexicon'
 import { getEngineEnvConfig, isSupportedEngine, synthesizeLongText } from '@/lib/tts/synthesis'
 
 // 批次目前只開放這三個引擎（FR-015）
@@ -59,6 +60,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // 發音校正詞庫（AC-006）：計費用原文，送進引擎的是校正後文字
+    const applyLexicon = await lexiconTransformer(userId)
+
     // ── Process each task ───────────────────────────────────────
     const results: Array<{
       id: string
@@ -99,7 +103,7 @@ export async function POST(req: NextRequest) {
         const parsedSpeed = parseFloat(speed)
         const result = await synthesizeLongText({
           engine,
-          text: text.trim(),
+          text: applyLexicon(text.trim()),
           voice: typeof frontendVoice === 'string' ? frontendVoice : undefined,
           speed: Number.isFinite(parsedSpeed) ? parsedSpeed : 1.0,
           apiKey: byokKey || null,
