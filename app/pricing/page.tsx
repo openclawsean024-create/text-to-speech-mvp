@@ -1,9 +1,16 @@
-'use client'
-
 import Link from 'next/link'
-import { Mic, BarChart3, Globe, Zap, Flame, Rocket, MessageCircle, Star, CreditCard, Pencil, Mail, Lock, Music } from 'lucide-react'
+import { Mic, BarChart3, Globe, Rocket, MessageCircle, CreditCard } from 'lucide-react'
+import { listPlans, formatPlanPrice, usingDefaultTestValues } from '@/lib/billing/plans'
+
+// 方案內容在請求時由伺服器端設定讀取（config/plans.json 或 BILLING_PLANS_JSON），
+// 頁面本身不寫死任何價格或額度。
+export const dynamic = 'force-dynamic'
 
 export default function PricingPage() {
+  const plans = listPlans()
+  const testValues = usingDefaultTestValues()
+  const pricePending = plans.some((plan) => plan.paid && !plan.price)
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Header */}
@@ -12,7 +19,7 @@ export default function PricingPage() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}><Mic size={14} className="inline" /></div>
             <div>
-              <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>文字轉語音 <span style={{ color: 'var(--primary)', fontSize: '0.7em' }}>v2.0</span></h1>
+              <h1 className="text-sm font-bold" style={{ color: 'var(--text)' }}>文字轉語音 </h1>
               <p className="text-xs" style={{ color: 'var(--text-3)' }}>多引擎 AI TTS</p>
             </div>
           </div>
@@ -29,102 +36,43 @@ export default function PricingPage() {
         <div className="text-center">
           <div className="inline-flex items-center gap-1.5 badge mb-4"><CreditCard size={12} className="inline" /> 簡單透明的定價</div>
           <h2 className="text-3xl font-bold mb-3" style={{ color: 'var(--text)' }}>選擇適合你的方案</h2>
-          <p className="text-sm" style={{ color: 'var(--text-2)' }}>從免費開始，隨需求成長升級。所有方案均無隱藏費用。</p>
+          <p className="text-sm" style={{ color: 'var(--text-2)' }}>雲端語音按字數計量，每個方案含每月字數額度。</p>
         </div>
 
-        {/* Pricing Grid */}
+        {/* Pricing Grid — 由方案設定產生 */}
+        {(testValues || pricePending) && (
+          <div className="toast info text-sm">
+            {pricePending && '付費方案的價格尚未公布，暫不開放線上訂閱。'}
+            {testValues && '下列每月字數額度為測試值，正式數值將另行公告。'}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Free */}
-          <div className="plan-card">
-            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}><Globe size={14} className="inline" /> 免費方案</div>
-            <div className="text-xs mb-4" style={{ color: 'var(--text-3)' }}>適合體驗與輕量使用</div>
-            <div className="mb-5">
-              <span className="text-4xl font-bold" style={{ color: '#10b981' }}>NT$0</span>
-              <span className="text-sm ml-1" style={{ color: 'var(--text-3)' }}>/ 永久免費</span>
-            </div>
-            <div className="divider" />
-            <ul className="space-y-2.5 text-sm flex-1">
-              {[
-                ['✓', true, '每天 10 次轉換'],
-                ['✓', true, '瀏覽器內建語音（免費）'],
-                ['✓', true, '支援 .txt / .srt / .vtt / .lrc'],
-                ['✓', true, '5,000 字上限'],
-                ['✗', false, 'OpenAI TTS'],
-                ['✗', false, 'ElevenLabs'],
-                ['✗', false, 'Kokoro'],
-                ['✗', false, '商業使用授權'],
-              ].map(([icon, ok, text]) => (
-                <li key={text as string} className="flex items-center gap-2" style={{ color: ok ? 'var(--text-2)' : 'var(--text-3)' }}>
-                  <span style={{ color: ok ? '#10b981' : '#ef4444', fontWeight: 700 }}>{icon}</span>
-                  {text}
+          {plans.map((plan) => (
+            <div key={plan.id} className="glass-card p-6 flex flex-col">
+              <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}>
+                {plan.paid ? <Rocket size={14} className="inline" /> : <Globe size={14} className="inline" />} {plan.name}
+              </div>
+              <div className="mb-5 mt-3">
+                <span className="text-3xl font-bold" style={{ color: plan.paid ? 'var(--text)' : '#10b981' }}>
+                  {formatPlanPrice(plan)}
+                </span>
+              </div>
+              <ul className="space-y-2.5 text-sm flex-1" style={{ color: 'var(--text-2)' }}>
+                <li>
+                  每月字數額度：
+                  {plan.monthlyCharLimit === null ? '不限' : `${plan.monthlyCharLimit.toLocaleString('en-US')} 字`}
                 </li>
-              ))}
-            </ul>
-            <Link href="/" className="mt-6 block w-full py-3 text-center rounded-xl font-semibold text-sm transition-all"
-              style={{ background: 'var(--surface)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
-              免費開始
-            </Link>
-          </div>
-
-          {/* Starter */}
-          <div className="plan-card">
-            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--text)' }}><Zap size={12} className="inline" /> Starter</div>
-            <div className="text-xs mb-4" style={{ color: 'var(--text-3)' }}>適合個人創作者與小專案</div>
-            <div className="mb-5">
-              <span className="text-4xl font-bold" style={{ color: 'var(--text)' }}>NT$199</span>
-              <span className="text-sm ml-1" style={{ color: 'var(--text-3)' }}>/ 月</span>
+                <li>發音校正詞庫：最多 {plan.lexiconEntryLimit.toLocaleString('en-US')} 條自訂詞條</li>
+                <li>瀏覽器內建語音不計入額度</li>
+              </ul>
+              {!plan.paid && (
+                <Link href="/" className="mt-6 block w-full py-3 text-center rounded-xl font-semibold text-sm transition-all"
+                  style={{ background: 'var(--surface)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
+                  免費開始
+                </Link>
+              )}
             </div>
-            <div className="divider" />
-            <ul className="space-y-2.5 text-sm flex-1">
-              {[
-                ['✓', true, '每天 100 次轉換'],
-                ['✓', true, 'OpenAI gpt-4o-mini-tts'],
-                ['✓', true, 'ElevenLabs Multilingual v2'],
-                ['✓', true, 'Kokoro（inference.sh）'],
-                ['✓', true, '支援所有電子書格式'],
-                ['✓', true, '商業使用授權'],
-              ].map(([icon, ok, text]) => (
-                <li key={text as string} className="flex items-center gap-2" style={{ color: ok ? 'var(--text-2)' : 'var(--text-3)' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700 }}>{icon}</span>
-                  {text}
-                </li>
-              ))}
-            </ul>
-            <Link href="/dashboard" className="mt-6 block w-full py-3 text-center rounded-xl font-semibold text-sm btn-primary !text-xs !py-2.5">
-              選擇 Starter
-            </Link>
-          </div>
-
-          {/* Pro */}
-          <div className="plan-card featured">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-              <Flame size={12} className="inline" /> 最受歡迎
-            </div>
-            <div className="font-bold text-base mb-0.5" style={{ color: 'var(--primary)' }}><Rocket size={14} className="inline" /> Pro</div>
-            <div className="text-xs mb-4" style={{ color: 'var(--text-3)' }}>適合專業內容創作與商業用途</div>
-            <div className="mb-5">
-              <span className="text-4xl font-bold" style={{ color: 'var(--text)' }}>NT$599</span>
-              <span className="text-sm ml-1" style={{ color: 'var(--text-3)' }}>/ 月</span>
-            </div>
-            <div className="divider" />
-            <ul className="space-y-2.5 text-sm flex-1">
-              {[
-                ['✓', true, '每天 1,000 次轉換'],
-                ['✓', true, 'OpenAI · ElevenLabs · Kokoro'],
-                ['✓', true, '支援所有電子書格式'],
-                ['✓', true, '無限歷史記錄'],
-                ['✓', true, '優先客服 + 商業授權'],
-              ].map(([icon, ok, text]) => (
-                <li key={text as string} className="flex items-center gap-2" style={{ color: 'var(--text-2)' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700 }}>{icon}</span>
-                  {text}
-                </li>
-              ))}
-            </ul>
-            <Link href="/dashboard" className="mt-6 block w-full py-3 text-center rounded-xl font-semibold text-sm btn-primary !text-xs !py-2.5">
-              選擇 Pro
-            </Link>
-          </div>
+          ))}
         </div>
 
         {/* Engine Comparison */}
@@ -137,8 +85,8 @@ export default function PricingPage() {
                   <th className="text-left p-4 font-semibold text-xs" style={{ color: 'var(--text-2)' }}>功能</th>
                   <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}><Globe size={14} className="inline" /> 瀏覽器</th>
                   <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}><Mic size={14} className="inline" /> OpenAI</th>
-                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>HeadphonesElevenLabs</th>
-                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>VolumeKokoro</th>
+                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>ElevenLabs</th>
+                  <th className="p-3 text-center text-xs" style={{ color: 'var(--text-3)' }}>Kokoro</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,7 +96,7 @@ export default function PricingPage() {
                   ['多語言', '視瀏覽器', '✓ 30+', '✓ 30+', '✓'],
                   ['語速調整', '✓', '✓', '✓', '✓'],
                   ['可下載', '✗', '✓ MP3', '✓ MP3', '✓'],
-                  ['費用', '免費', 'API 计费', 'API 计费', 'API 计费'],
+                  ['費用', '免費', '依字數額度', '依字數額度', '依字數額度'],
                   ['適合用途', '快速試用', '高品質配音', '專業製作', '開源/實驗'],
                 ].map(([feature, ...cols]) => (
                   <tr key={feature as string} className="border-t" style={{ borderColor: 'var(--border)' }}>
@@ -170,12 +118,12 @@ export default function PricingPage() {
           <h2 className="text-xl font-bold mb-5 text-center" style={{ color: 'var(--text)' }}><MessageCircle size={14} className="inline" /> 常見問題</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
-              ['免費方案會過期嗎？', '不會。免費方案可以永久使用，每天 10 次轉換，無時間限制。'],
-              ['轉換次數如何計算？', '每次點擊「開始轉換」算一次，不論文字長度或引擎選擇。'],
-              ['我的 API Key 安全嗎？', 'API Key 儲存在你自己瀏覽器本地或安全資料庫，不會分享給第三方。'],
-              ['支援哪些電子書格式？', '支援 EPUB、PDF、DOCX 直接在瀏覽器內解析。'],
-              ['我可以自訂聲音嗎？', 'ElevenLabs 支援聲音克隆（需帳號設定）。其他引擎使用預設聲音。'],
-              ['如何升級方案？', '直接在控制台切換方案即可。即將支援線上升級功能。'],
+              ['用量怎麼計算？', '雲端語音依「計費字數」計算：以送出合成前的原文、去除空白後的字元數為準。每月額度於下個計費月份重置；合成失敗不計字數。'],
+              ['方案如何決定？', '方案由系統依你的訂閱紀錄判定，無法在頁面上自行切換。'],
+              ['可以上傳哪些內容？', '僅限你擁有或已取得授權的內容。上傳電子書前需要確認權利聲明；本服務不提供 DRM 移除。'],
+              ['支援哪些檔案格式？', '單段轉換可匯入 TXT、SRT、VTT、LRC、PDF、EPUB、DOCX；整本有聲書支援 TXT、EPUB 與文字型 PDF。'],
+              ['我的 API Key 安全嗎？', '自帶的引擎金鑰只用於你自己的請求。金鑰的儲存方式仍在改善中，建議使用可隨時撤銷的專用金鑰。'],
+              ['如何升級方案？', '付費方案的價格與線上訂閱尚未開放，開放時會在本頁公告。'],
             ].map(([q, a]) => (
               <div key={q} className="glass-card p-4">
                 <div className="font-semibold text-xs mb-2" style={{ color: 'var(--text)' }}>{q}</div>
@@ -192,8 +140,8 @@ export default function PricingPage() {
           <div className="relative">
             <h2 className="text-2xl font-bold mb-3 text-white">準備好開始了嗎？</h2>
             <p className="opacity-80 text-sm mb-5" style={{ color: '#e2e8f0' }}>
-              免費方案無需註冊，立即使用瀏覽器內建語音。<br />
-              需要高品質配音？選擇適合你的方案。
+              瀏覽器內建語音不需註冊即可使用。<br />
+              雲端語音與有聲書轉換依方案的每月字數額度計量。
             </p>
             <Link href="/" className="inline-block px-8 py-3 rounded-full font-bold text-sm hover:scale-105 transition-transform" style={{ background: 'white', color: '#4f46e5' }}>
               <Rocket size={14} className="inline" /> 免費開始使用
@@ -210,7 +158,7 @@ export default function PricingPage() {
           <span>·</span>
           <a href="/contact" style={{ color: 'var(--text-3)', textDecoration: 'underline' }}>聯絡我們</a>
         </div>
-        <p>© {new Date().getFullYear()} 文字轉語音 v2.0 · 支援多引擎 AI TTS</p>
+        <p>© {new Date().getFullYear()} 繁中 TTS 與有聲書工作台</p>
       </footer>
     </div>
   )

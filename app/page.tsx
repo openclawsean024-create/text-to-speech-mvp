@@ -11,6 +11,7 @@ import { VOICES as NEW_VOICES, LANGUAGE_LABELS } from '@/lib/voices'
 import VoiceSelector from '@/components/VoiceSelector'
 import BatchQueue from '@/components/BatchQueue'
 import { buildShareUrl, parseSharedSettings, hasLegacyContentParam } from '@/lib/share'
+import { RIGHTS_SHORT_NOTICE } from '@/lib/rights'
 import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
   FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download, Share2,
@@ -670,6 +671,10 @@ export default function HomePage() {
             </div>
             <input type="file" id="fileInput" accept=".txt,.srt,.vtt,.lrc,.epub,.pdf,.docx" className="hidden"
               onChange={e => { const file = e.target.files?.[0]; if (file) handleFile(file) }} />
+            <div className="mt-3 text-xs" style={{ color: 'var(--text-3)' }}>
+              {RIGHTS_SHORT_NOTICE}此處匯入只取前 5,000 字作為單段轉換。
+              {' '}<Link href="/audiobook" className="underline" style={{ color: 'var(--primary-light)' }}>整本電子書轉有聲書（逐章音檔＋字幕）→</Link>
+            </div>
           </div>
 
           {/* Mode Toggle */}

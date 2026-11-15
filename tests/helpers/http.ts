@@ -28,3 +28,19 @@ export function uniqueUser(label = 'user'): string {
   counter += 1
   return `user_test_${label}_${counter}`
 }
+
+/** multipart/form-data 上傳請求（有聲書）。 */
+export function uploadRequest(
+  path: string,
+  fields: Record<string, string>,
+  file?: { name: string; content: Buffer | string },
+  headers: Record<string, string> = {},
+): NextRequest {
+  const form = new FormData()
+  for (const [key, value] of Object.entries(fields)) form.set(key, value)
+  if (file) {
+    const bytes = typeof file.content === 'string' ? Buffer.from(file.content, 'utf8') : file.content
+    form.set('file', new File([new Uint8Array(bytes)], file.name))
+  }
+  return new NextRequest(`${BASE}${path}`, { method: 'POST', body: form, headers })
+}

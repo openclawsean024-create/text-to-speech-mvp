@@ -11,10 +11,10 @@
 | AC-001 | CI 可重跑 | ✅ 完成（GHA run 連結待 PR 補上） | `ci-config`（`tests/unit/ci-config.test.ts`，5 案例） | `pnpm install --frozen-lockfile` exit 0；`pnpm run ci` exit 0 |
 | AC-002 | 電子書解析併入 | ✅ 完成 | `parser`（`tests/unit/parser.test.ts` 27 案例＝EB 原測試全數移植；`tests/unit/parser-book-file.test.ts` 18 案例） | `lib/audiobook/parser.ts` 函式本體與 EB 相同；自製 TXT fixture 切出 3 章；>50MB 413、錯誤簽章 415；12,000 字內容不截斷；另支援 EPUB（含 DRM 拒絕）與文字型 PDF |
 | AC-003 | TTS 測試模式 | ✅ 完成 | `tts-provider`（`tests/unit/tts-provider.test.ts` 26 案例；`tests/integration/tts-provider.routes.test.ts` 9 案例） | `global.fetch` 為呼叫即拋錯的 stub、`lib/tts-engines` 換成拋錯間諜；`/api/tts`（5 引擎）、`/api/batch`、`/api/preview` 全部通過，外呼 0 次 |
-| AC-004 | 有聲書轉換流程（Mock） | 未開始 | — | — |
+| AC-004 | 有聲書轉換流程（Mock） | ✅ 完成 | audiobook.integration（tests/integration/audiobook.integration.test.ts，18 案例）；audio（14）、subtitles（9）為 EB 測試移植 | 3 章 fixture：3 個章節輸出、檔名 {slug}-chapter-XX、SRT／VTT 各 ≥1 段、Mock 呼叫次數＝片段數；進度 done 100%；中途失敗不重試 |
 | AC-005 | 按字數計量與額度 | 未開始 | — | — |
 | AC-006 | 繁中發音校正詞庫 | 未開始 | — | — |
-| AC-007 | 自有內容聲明與存取控制 | 🟡 部分完成（存取控制、分享連結已完成； 聲明隨 AC-004 有聲書上傳端點完成） | `access-control`（7 案例）、`share-link`（5 案例） | `/api/v1/jobs/[id]` 與 `/download`：擁有者 200、他人 403、匿名 401；分享連結只含設定參數 |
+| AC-007 | 自有內容聲明與存取控制 | ✅ 完成 | access-control（tests/integration/access-control.test.ts，16 案例）、share-link（5 案例） | 未聲明 400、他人 userId 403、匿名 401、擁有者 200（/api/v1/jobs 與 /api/audiobook 皆同）；聲明版本與時間戳記隨工作保存；分享連結只含設定參數 |
 | AC-008 | 方案與 tier 由伺服器端決定 | ✅ 完成 | `tier-guard`（`tests/integration/tier-guard.test.ts`，12 案例） | `/api/tts`、`/api/batch` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage?plan=` 皆不採信；`/api/v1/keys` 匿名 401、無訂閱建立付費 tier 403 |
 | AC-009 | 合併紀錄與文件一致 | 未開始 | — | — |
 
