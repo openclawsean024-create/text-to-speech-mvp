@@ -50,6 +50,7 @@ AC 對應測試：`pnpm test -- ci-config`（AC-001）、`parser`（AC-002）、
 | `pnpm test -- docs-consistency`（AC-009） | 9 passed |
 | GOAL AC-009 `git grep` 機密掃描 | 無輸出 |
 | `git diff --stat origin/master...HEAD` 中的 `.epub`／`.pdf` | 無 |
+| GHA `ci`（PR #2，Node 20 setup） | ✅ success：test 231 passed、smoke 8/8、build 19 頁、e2e 通過（[run](https://github.com/openclawsean024-create/text-to-speech-mvp/actions/runs/43757534562)） |
 
 ## 本機開發
 
