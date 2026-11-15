@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File too large (max 4MB)' }, { status: 413 })
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 413 })
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
@@ -105,7 +105,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not extract text from file' }, { status: 422 })
     }
 
-    // Truncate to 5000 chars (matching the TTS limit)
+    // 單段 TTS 匯入用：截成 5,000 字（一個合成片段）。
+    // 有聲書路徑不經過這裡，改用 lib/audiobook/extract.ts（不截斷，AC-002）。
     if (text.length > 5000) {
       text = text.slice(0, 5000)
     }

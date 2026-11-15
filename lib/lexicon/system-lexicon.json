@@ -1,0 +1,10 @@
+{
+  "note": "系統預設的繁中發音校正詞條（M1 示範用，自行撰寫；正式詞條需經繁中盲測校對，M2）。replacement 為送進 TTS 的替代讀法文字。",
+  "entries": [
+    { "term": "行長", "replacement": "航長", "zhuyin": "ㄏㄤˊ ㄓㄤˇ", "pinyin": "hang2 zhang3" },
+    { "term": "銀行", "replacement": "銀航", "zhuyin": "ㄧㄣˊ ㄏㄤˊ", "pinyin": "yin2 hang2" },
+    { "term": "長大", "replacement": "掌大", "zhuyin": "ㄓㄤˇ ㄉㄚˋ", "pinyin": "zhang3 da4" },
+    { "term": "重新", "replacement": "蟲新", "zhuyin": "ㄔㄨㄥˊ ㄒㄧㄣ", "pinyin": "chong2 xin1" },
+    { "term": "TTS", "replacement": "T T S" }
+  ]
+}

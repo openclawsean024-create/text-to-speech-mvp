@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getJob } from '@/lib/jobs'
-import { findApiKey, extractBearer } from '@/lib/api-keys'
+import { resolveIdentity } from '@/lib/identity'
+import { authorizeOwner } from '@/lib/access-control'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,22 +17,24 @@ const FORMAT_INFO: Record<string, { contentType: string; ext: string }> = {
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id } = params
+
+  // 只允許擁有者下載（AC-007）；不存在「建立後 30 天內可匿名下載」的放行。
+  const identity = await resolveIdentity(req, { allowApiKey: true, allowDemo: false })
+  if (identity.kind === 'anonymous') {
+    const denied = authorizeOwner(identity, {})
+    if (denied.allowed === false) {
+      return NextResponse.json({ error: denied.error, code: denied.code }, { status: denied.status })
+    }
+  }
+
   const job = await getJob(id)
   if (!job) {
     return NextResponse.json({ error: 'Job not found', code: 'NOT_FOUND' }, { status: 404 })
   }
 
-  // Authorization (same pattern as /jobs/[id])
-  const authHeader = req.headers.get('authorization')
-  const bearer = extractBearer(authHeader)
-  let authorized = false
-  if (bearer) {
-    const apiKeyRecord = await findApiKey(bearer)
-    if (apiKeyRecord && job.apiKeyId === apiKeyRecord.id) authorized = true
-  }
-  if (!authorized && Date.now() - job.createdAt < 30 * 24 * 3600 * 1000) authorized = true
-  if (!authorized) {
-    return NextResponse.json({ error: 'Not authorized', code: 'FORBIDDEN' }, { status: 403 })
+  const decision = authorizeOwner(identity, { userId: job.userId, apiKeyId: job.apiKeyId })
+  if (decision.allowed === false) {
+    return NextResponse.json({ error: decision.error, code: decision.code }, { status: decision.status })
   }
 
   if (job.status !== 'done') {
@@ -109,7 +112,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     headers: {
       'Content-Type': contentType,
       'Content-Disposition': `attachment; filename="${filename}.${ext}"`,
-      'Cache-Control': 'private, max-age=300',
+      'Cache-Control': 'private, no-store',
     },
   })
 }

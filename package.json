@@ -1,7 +1,7 @@
 {
   "name": "text-to-speech-mvp",
   "version": "3.0.0",
-  "description": "文字轉語音 v2.0 - 多引擎 AI TTS 產品化版本",
+  "description": "繁中 TTS 與有聲書工作台 — 多引擎 TTS、電子書轉有聲書（M1 測試模式）",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,8 +10,11 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/ci-smoke.js",
-    "ci": "pnpm run typecheck && pnpm run lint && pnpm run smoke && pnpm run build && node --test e2e/smoke.test.mjs",
-    "prebuild": ""
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "node --test e2e/smoke.test.mjs",
+    "scan:secrets": "node scripts/secret-scan.mjs",
+    "ci": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build && pnpm run e2e"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",
@@ -37,7 +40,8 @@
     "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=18"

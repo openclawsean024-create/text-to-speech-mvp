@@ -3,15 +3,17 @@
  *
  * SHA-256 hashed API keys with tier + monthly limits + expiration.
  *
- * Tiers (v3.0 spec):
- * - free:    0 NT$ /  TTS 5 分 + 後製 30 分/月
- * - personal: NT$99 / TTS 30 分 + 後製 60 分/月 (1 hr)
- * - creator: NT$299 / TTS 180 分 + 後製 600 分/月 (10 hr)
- * - business: NT$2,999 / TTS 3000 分 + 後製 12000 分/月 (200 hr)
- * - custom:  NT$9,999+ / unlimited
+ * Tier 與 lib/billing 的方案 id 相同（free／personal／creator／business／custom）。
+ * 價格不寫死在程式：顯示用價格取自方案設定（config/plans.json 或 BILLING_PLANS_JSON），
+ * 尚未決定時顯示「待定」。以下 TTS／後製分鐘數為企業 API（/api/v1/process）既有的後製額度。
  */
 
 import crypto from 'node:crypto'
+import planConfig from '@/lib/billing/plan-config'
+
+function tierPrice(tier: string): string {
+  return planConfig.formatPlanPrice(planConfig.getPlanOrFree(tier))
+}
 
 const KEY_PREFIX = 'hms_'
 
@@ -54,7 +56,7 @@ export const TIER_LIMITS: Record<Tier, TierConfig> = {
     monthlyApiCalls: 100,
     rateLimitRps: 1,
     description: '免費試用',
-    price: 'NT$0',
+    get price() { return tierPrice('free') },
   },
   personal: {
     monthlyTtsMin: Number(process.env.TIER_PERSONAL_TTS_MIN ?? 30),
@@ -62,7 +64,7 @@ export const TIER_LIMITS: Record<Tier, TierConfig> = {
     monthlyApiCalls: 1000,
     rateLimitRps: 1,
     description: '個人版',
-    price: 'NT$99/月',
+    get price() { return tierPrice('personal') },
   },
   creator: {
     monthlyTtsMin: Number(process.env.TIER_CREATOR_TTS_MIN ?? 180),
@@ -70,7 +72,7 @@ export const TIER_LIMITS: Record<Tier, TierConfig> = {
     monthlyApiCalls: 5000,
     rateLimitRps: 1,
     description: '創作者版',
-    price: 'NT$299/月',
+    get price() { return tierPrice('creator') },
   },
   business: {
     monthlyTtsMin: Number(process.env.TIER_BUSINESS_TTS_MIN ?? 3000),
@@ -78,7 +80,7 @@ export const TIER_LIMITS: Record<Tier, TierConfig> = {
     monthlyApiCalls: 100000,
     rateLimitRps: 1,
     description: '企業 API',
-    price: 'NT$2,999/月',
+    get price() { return tierPrice('business') },
   },
   custom: {
     monthlyTtsMin: 999999,
@@ -86,7 +88,7 @@ export const TIER_LIMITS: Record<Tier, TierConfig> = {
     monthlyApiCalls: 999999,
     rateLimitRps: 5,
     description: '客製方案',
-    price: 'NT$9,999+',
+    get price() { return tierPrice('custom') },
   },
 }
 

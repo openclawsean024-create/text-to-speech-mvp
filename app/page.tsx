@@ -10,6 +10,8 @@ import { useVoiceContext } from '@/contexts/VoiceContext'
 import { VOICES as NEW_VOICES, LANGUAGE_LABELS } from '@/lib/voices'
 import VoiceSelector from '@/components/VoiceSelector'
 import BatchQueue from '@/components/BatchQueue'
+import { buildShareUrl, parseSharedSettings, hasLegacyContentParam } from '@/lib/share'
+import { RIGHTS_SHORT_NOTICE } from '@/lib/rights'
 import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
   FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download, Share2,
@@ -28,7 +30,6 @@ export default function HomePage() {
 
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
-  const [plan, setPlan] = useState('free')
   const [voice, setVoice] = useState('zh-CN')
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState(1)
@@ -103,13 +104,25 @@ export default function HomePage() {
     setClerkConfigured(isClerkConfigured())
   }, [])
 
+  // 套用分享連結的設定；舊版連結若帶有 text 參數，立即從網址列移除
+  useEffect(() => {
+    const shared = parseSharedSettings(window.location.search)
+    if (shared) {
+      if (shared.engine) setEngine(shared.engine)
+      if (shared.voice) setVoice(shared.voice)
+      if (shared.speed) setSpeed(shared.speed)
+    }
+    if (hasLegacyContentParam(window.location.search)) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
+
   useEffect(() => {
     if (user) {
       const saved = localStorage.getItem(`tts_settings_${(user as any)?.id || 'anonymous'}`)
       if (saved) {
         const s = JSON.parse(saved)
         setEngine(s.engine || 'openai')
-        setPlan(s.plan || 'free')
         setVoice(s.voice || 'zh-CN')
         setApiKeyInput('')
       }
@@ -118,9 +131,9 @@ export default function HomePage() {
 
   const persistSettings = useCallback(() => {
     if (user) {
-      localStorage.setItem(`tts_settings_${(user as any)?.id || 'anonymous'}`, JSON.stringify({ engine, plan, voice }))
+      localStorage.setItem(`tts_settings_${(user as any)?.id || 'anonymous'}`, JSON.stringify({ engine, voice }))
     }
-  }, [user, engine, plan, voice])
+  }, [user, engine, voice])
 
   const handleConvert = async () => {
     if (!text.trim()) { showStatus(t('status.noText'), 'error'); return }
@@ -170,7 +183,8 @@ export default function HomePage() {
     setChunkProgress(null)
     setIsMerging(false)
 
-    const body: Record<string, unknown> = { text, engine, voice, speed, plan, format: downloadFormat }
+    // 方案與額度由伺服器端決定，不傳 plan
+    const body: Record<string, unknown> = { text, engine, voice, speed, format: downloadFormat }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
 
     // Show chunking info if text is large
@@ -201,8 +215,12 @@ export default function HomePage() {
       setChunkProgress(null)
 
       // Show user-friendly guidance based on error code
-      if (res.status === 429) {
-        msg = `使用量已達上限（${plan} 方案：${t('nav.pricing')}），請明天再試或升級方案`
+      if (res.status === 402 && errCode === 'CHAR_QUOTA_EXCEEDED') {
+        msg = `本月字數額度已用完（${t('nav.pricing')}），請升級方案或等待下個月重置`
+      } else if (res.status === 429) {
+        msg = '引擎服務暫時忙碌，請稍後再試'
+      } else if (res.status === 401 && errCode === 'NO_AUTH') {
+        msg = t('status.loginRequired')
       } else if (res.status === 401 || errCode === 'INVALID_API_KEY') {
         msg = 'API Key 無效，請至控制台更新你的 API Key'
       } else if (res.status === 402 || errCode === 'QUOTA_EXCEEDED') {
@@ -309,14 +327,8 @@ export default function HomePage() {
     if (!audioUrl || !text.trim()) return
     setIsSharing(true)
     try {
-      // Store current state in URL params for sharing
-      const params = new URLSearchParams({
-        text: text.slice(0, 500),
-        engine,
-        voice,
-        speed: String(speed),
-      })
-      const shareUrlStr = `${window.location.origin}?shared=1&${params.toString()}`
+      // 只分享設定（引擎、聲音、語速）；原文絕不放進 URL（AC-007）
+      const shareUrlStr = buildShareUrl(window.location.origin, { engine, voice, speed })
       await navigator.clipboard.writeText(shareUrlStr)
       setShareUrl(shareUrlStr)
       showStatus(t('status.linkCopied') || '分享連結已複製到剪貼簿', 'success')
@@ -659,6 +671,10 @@ export default function HomePage() {
             </div>
             <input type="file" id="fileInput" accept=".txt,.srt,.vtt,.lrc,.epub,.pdf,.docx" className="hidden"
               onChange={e => { const file = e.target.files?.[0]; if (file) handleFile(file) }} />
+            <div className="mt-3 text-xs" style={{ color: 'var(--text-3)' }}>
+              {RIGHTS_SHORT_NOTICE}此處匯入只取前 5,000 字作為單段轉換。
+              {' '}<Link href="/audiobook" className="underline" style={{ color: 'var(--primary-light)' }}>整本電子書轉有聲書（逐章音檔＋字幕）→</Link>
+            </div>
           </div>
 
           {/* Mode Toggle */}
@@ -701,27 +717,10 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Plan Selection */}
-                <div>
-                  <span className="label">{t('mode.plan')}</span>
-                  <div className="flex gap-3">
-                    {[
-                      ['free', 'Free', '10/day', ''],
-                      ['starter', 'Starter', '100次/天', ''],
-                      ['pro', 'Pro', '1000次/天', 'badge badge-cyan'],
-                    ].map(([id, label, badge, badgeClass]) => (
-                      <button key={id}
-                        className={`flex-1 py-3 px-3 rounded-xl border text-center transition-all ${badgeClass || ''}`}
-                        style={plan === id
-                          ? { borderColor: 'var(--primary)', background: 'rgba(124,58,237,0.12)', boxShadow: '0 0 0 1px var(--primary)' }
-                          : { background: 'var(--surface)', borderColor: 'var(--border)' }
-                        }
-                        onClick={() => setPlan(id as string)}>
-                        <div className="font-bold text-sm" style={{ color: plan === id ? 'var(--primary-light)' : 'var(--text-2)' }}>{label}</div>
-                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{badge}</div>
-                      </button>
-                    ))}
-                  </div>
+                {/* 方案與每月字數額度由伺服器端依訂閱決定（不可由用戶端選擇） */}
+                <div className="text-xs" style={{ color: 'var(--text-3)' }}>
+                  {t('mode.plan')}：依訂閱由系統決定，用量以字數計算。
+                  {' '}<Link href="/dashboard" className="underline">查看本月用量</Link>
                 </div>
 
                 {!user && clerkConfigured && (
@@ -953,7 +952,7 @@ export default function HomePage() {
                 <button onClick={handleShare} disabled={isSharing} className="btn-secondary !py-2.5 !px-6 !text-sm">
                   {isSharing
                     ? <><Loader size={12} className="inline animate-spin" /> 處理中</>
-                    : <><Share2 size={14} className="inline" /> {shareUrl ? '已複製' : '分享連結'}</>
+                    : <><Share2 size={14} className="inline" /> {shareUrl ? '已複製' : '分享設定連結'}</>
                   }
                 </button>
               </div>

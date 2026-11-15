@@ -1,3 +1,8 @@
+# 單一套件 repo。pnpm 9 要求 workspace 檔必須有非空的 packages 欄位，
+# 缺少時 `pnpm install` 會以「packages field missing or empty」失敗（AC-001）。
+packages:
+  - '.'
+
 allowBuilds:
   esbuild: true
   sharp: true
