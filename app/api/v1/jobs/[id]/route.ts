@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { getJob } from '@/lib/jobs'
-import { findApiKey, extractBearer } from '@/lib/api-keys'
+import { resolveIdentity } from '@/lib/identity'
+import { authorizeOwner } from '@/lib/access-control'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,30 +11,25 @@ interface RouteParams {
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id } = params
+
+  // 只允許擁有者（Clerk userId 或建立該工作的 API key）讀取（AC-007）。
+  // 先驗證身分再查工作：匿名一律 401，不洩漏工作是否存在。
+  const identity = await resolveIdentity(req, { allowApiKey: true, allowDemo: false })
+  if (identity.kind === 'anonymous') {
+    const denied = authorizeOwner(identity, {})
+    if (denied.allowed === false) {
+      return NextResponse.json({ error: denied.error, code: denied.code }, { status: denied.status })
+    }
+  }
+
   const job = await getJob(id)
   if (!job) {
     return NextResponse.json({ error: 'Job not found', code: 'NOT_FOUND' }, { status: 404 })
   }
 
-  // Authorization: either owner, API key owner, or unauthenticated (job IDs are unguessable)
-  const authHeader = req.headers.get('authorization')
-  const bearer = extractBearer(authHeader)
-  let authorized = false
-  if (bearer) {
-    const apiKeyRecord = await findApiKey(bearer)
-    if (apiKeyRecord && job.apiKeyId === apiKeyRecord.id) authorized = true
-  } else {
-    try {
-      const { userId } = await auth().catch(() => ({ userId: null as string | null }))
-      if (userId && job.userId === userId) authorized = true
-    } catch { /* */ }
-  }
-  // Allow anonymous read for short window if no auth provided (job IDs are random 14 chars)
-  // Production: should require auth — but for ease of demo, allow if created < 24h ago
-  if (!authorized && Date.now() - job.createdAt < 24 * 3600 * 1000) authorized = true
-
-  if (!authorized) {
-    return NextResponse.json({ error: 'Not authorized to view this job', code: 'FORBIDDEN' }, { status: 403 })
+  const decision = authorizeOwner(identity, { userId: job.userId, apiKeyId: job.apiKeyId })
+  if (decision.allowed === false) {
+    return NextResponse.json({ error: decision.error, code: decision.code }, { status: decision.status })
   }
 
   // Strip heavy fields for poll, include download URLs

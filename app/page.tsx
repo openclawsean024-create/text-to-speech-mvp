@@ -10,6 +10,7 @@ import { useVoiceContext } from '@/contexts/VoiceContext'
 import { VOICES as NEW_VOICES, LANGUAGE_LABELS } from '@/lib/voices'
 import VoiceSelector from '@/components/VoiceSelector'
 import BatchQueue from '@/components/BatchQueue'
+import { buildShareUrl, parseSharedSettings, hasLegacyContentParam } from '@/lib/share'
 import {
   Sparkles, Zap, BarChart3, Globe, Bot, CreditCard, FolderOpen,
   FileText, Volume2, Clock, Boxes, Pen, Music, Loader, Download, Share2,
@@ -100,6 +101,19 @@ export default function HomePage() {
   // Check if Clerk is configured
   useEffect(() => {
     setClerkConfigured(isClerkConfigured())
+  }, [])
+
+  // 套用分享連結的設定；舊版連結若帶有 text 參數，立即從網址列移除
+  useEffect(() => {
+    const shared = parseSharedSettings(window.location.search)
+    if (shared) {
+      if (shared.engine) setEngine(shared.engine)
+      if (shared.voice) setVoice(shared.voice)
+      if (shared.speed) setSpeed(shared.speed)
+    }
+    if (hasLegacyContentParam(window.location.search)) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
   }, [])
 
   useEffect(() => {
@@ -312,14 +326,8 @@ export default function HomePage() {
     if (!audioUrl || !text.trim()) return
     setIsSharing(true)
     try {
-      // Store current state in URL params for sharing
-      const params = new URLSearchParams({
-        text: text.slice(0, 500),
-        engine,
-        voice,
-        speed: String(speed),
-      })
-      const shareUrlStr = `${window.location.origin}?shared=1&${params.toString()}`
+      // 只分享設定（引擎、聲音、語速）；原文絕不放進 URL（AC-007）
+      const shareUrlStr = buildShareUrl(window.location.origin, { engine, voice, speed })
       await navigator.clipboard.writeText(shareUrlStr)
       setShareUrl(shareUrlStr)
       showStatus(t('status.linkCopied') || '分享連結已複製到剪貼簿', 'success')
@@ -939,7 +947,7 @@ export default function HomePage() {
                 <button onClick={handleShare} disabled={isSharing} className="btn-secondary !py-2.5 !px-6 !text-sm">
                   {isSharing
                     ? <><Loader size={12} className="inline animate-spin" /> 處理中</>
-                    : <><Share2 size={14} className="inline" /> {shareUrl ? '已複製' : '分享連結'}</>
+                    : <><Share2 size={14} className="inline" /> {shareUrl ? '已複製' : '分享設定連結'}</>
                   }
                 </button>
               </div>
