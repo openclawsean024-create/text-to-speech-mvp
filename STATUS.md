@@ -1,6 +1,6 @@
 # Status — 繁中 TTS 與有聲書工作台（text-to-speech-mvp）
 
-- State：🟢 **M1 開發完成，待 Sean 覆審**（分支 `feat/m1`，自 `chore/prd-rebuild` 分出；2026-11-16）。驗證輸出摘要見 `SOP.md`「M1 驗證紀錄」。
+- State：🟢 **M1 完成（合併清單 Sean 已覆審通過）**（分支 `feat/m1`，自 `chore/prd-rebuild` 分出；2026-11-16）。驗證輸出摘要見 `SOP.md`「M1 驗證紀錄」。
 - 本次性質：文件重建（`PRD/SPEC.md`、`GOAL.md`、`AGENTS.md`、`SOP.md`、`STATUS.md`），未修改任何功能程式碼、設定或測試。
 - 基準 commit：`master` @ `96b2eac`；文件分支 `chore/prd-rebuild`（Draft PR）。
 
