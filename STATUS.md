@@ -16,7 +16,7 @@
 | AC-006 | 繁中發音校正詞庫 | ✅ 完成 | lexicon（tests/unit/lexicon.test.ts 10 案例；tests/integration/lexicon.routes.test.ts 8 案例） | 最長匹配、同句多詞條、不重疊、使用者覆蓋系統；Mock 收到替換後文字、計費以原文計；/api/tts、/api/batch、/api/audiobook 皆套用；與 Whisper 詞彙表（glossary:）資料分開 |
 | AC-007 | 自有內容聲明與存取控制 | ✅ 完成 | access-control（tests/integration/access-control.test.ts，16 案例）、share-link（5 案例） | 未聲明 400、他人 userId 403、匿名 401、擁有者 200（/api/v1/jobs 與 /api/audiobook 皆同）；聲明版本與時間戳記隨工作保存；分享連結只含設定參數 |
 | AC-008 | 方案與 tier 由伺服器端決定 | ✅ 完成 | `tier-guard`（`tests/integration/tier-guard.test.ts`，12 案例） | `/api/tts`、`/api/batch` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage?plan=` 皆不採信；`/api/v1/keys` 匿名 401、無訂閱建立付費 tier 403 |
-| AC-009 | 合併紀錄與文件一致 | ✅ 完成（STATUS 合併清單待 Sean 逐項覆審） | docs-consistency（tests/unit/docs-consistency.test.ts，9 案例） | 機密掃描 0 筆（scan:secrets 與 GOAL git grep）；無 .epub／.pdf；SOP 指令與 package.json 一致；README 移除 SPEC §13 不實描述；CHANGELOG 新增 M1 並更正 v3.0.2 綠燈描述 |
+| AC-009 | 合併紀錄與文件一致 | ✅ 完成（合併清單 Sean 已覆審通過，2026-11-16） | docs-consistency（tests/unit/docs-consistency.test.ts，9 案例） | 機密掃描 0 筆（scan:secrets 與 GOAL git grep）；無 .epub／.pdf；SOP 指令與 package.json 一致；README 移除 SPEC §13 不實描述；CHANGELOG 新增 M1 並更正 v3.0.2 綠燈描述 |
 
 ### AC-001 決策紀錄
 
@@ -93,7 +93,7 @@
 
 1. 計費字數規則（標點是否計入、計費月份時區）與方案額度數值、價格（NT$ 三層或 USD 兩層）。
 2. 權利聲明文案（`lib/rights.ts`）的法律覆核；產出保留期間（目前 24 小時）。
-3. 合併清單逐項覆審（本檔「合併清單進度」）。
+3. ~~合併清單逐項覆審~~ ✅ Sean 已於 2026-11-16 確認「合併清單覆審通過」。
 4. `GOAL.md`／`SOP.md` 的機密掃描指令改為等價寫法（`sk_l[i]ve_`、`eyJhbGc[i]Oi`），避免指令文字比對到自己；比對結果與原樣式相同。
 5. 合併本 PR 後 `deploy.yml` 會恢復運作並嘗試正式部署——何時合併由 Sean 決定。
 6. PR #1（`chore/prd-rebuild`）尚未合併，本分支包含其文件 commit。
