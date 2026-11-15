@@ -1,6 +1,6 @@
 # Status — 繁中 TTS 與有聲書工作台（text-to-speech-mvp）
 
-- State：🟡 **M1 開發中**（分支 `feat/m1`，自 `chore/prd-rebuild` 分出；2026-11-16）
+- State：🟢 **M1 開發完成，待 Sean 覆審**（分支 `feat/m1`，自 `chore/prd-rebuild` 分出；2026-11-16）。驗證輸出摘要見 `SOP.md`「M1 驗證紀錄」。
 - 本次性質：文件重建（`PRD/SPEC.md`、`GOAL.md`、`AGENTS.md`、`SOP.md`、`STATUS.md`），未修改任何功能程式碼、設定或測試。
 - 基準 commit：`master` @ `96b2eac`；文件分支 `chore/prd-rebuild`（Draft PR）。
 
@@ -8,7 +8,7 @@
 
 | AC | 內容 | 狀態 | 測試（`pnpm test -- <關鍵字>`） | 證據 |
 |---|---|---|---|---|
-| AC-001 | CI 可重跑 | ✅ 完成（GHA run 連結待 PR 補上） | `ci-config`（`tests/unit/ci-config.test.ts`，5 案例） | `pnpm install --frozen-lockfile` exit 0；`pnpm run ci` exit 0 |
+| AC-001 | CI 可重跑 | ✅ 完成（GHA run 見 PR） | `ci-config`（`tests/unit/ci-config.test.ts`，5 案例） | `pnpm install --frozen-lockfile` exit 0；`pnpm run ci` exit 0 |
 | AC-002 | 電子書解析併入 | ✅ 完成 | `parser`（`tests/unit/parser.test.ts` 27 案例＝EB 原測試全數移植；`tests/unit/parser-book-file.test.ts` 18 案例） | `lib/audiobook/parser.ts` 函式本體與 EB 相同；自製 TXT fixture 切出 3 章；>50MB 413、錯誤簽章 415；12,000 字內容不截斷；另支援 EPUB（含 DRM 拒絕）與文字型 PDF |
 | AC-003 | TTS 測試模式 | ✅ 完成 | `tts-provider`（`tests/unit/tts-provider.test.ts` 26 案例；`tests/integration/tts-provider.routes.test.ts` 9 案例） | `global.fetch` 為呼叫即拋錯的 stub、`lib/tts-engines` 換成拋錯間諜；`/api/tts`（5 引擎）、`/api/batch`、`/api/preview` 全部通過，外呼 0 次 |
 | AC-004 | 有聲書轉換流程（Mock） | ✅ 完成 | audiobook.integration（tests/integration/audiobook.integration.test.ts，18 案例）；audio（14）、subtitles（9）為 EB 測試移植 | 3 章 fixture：3 個章節輸出、檔名 {slug}-chapter-XX、SRT／VTT 各 ≥1 段、Mock 呼叫次數＝片段數；進度 done 100%；中途失敗不重試 |
@@ -89,7 +89,16 @@
 - `ebook-to-audiobook` 音檔存公開 bucket、ElevenLabs 金鑰明文存資料庫、每片段重複合成。
 - README／舊 PRD 與程式不符處見 SPEC §13（含 tts-mvp、ebook-audio PRD 標示「已上線」但無程式）。
 
-## 下一步
+## 待 Sean 定案／覆審
 
-1. Sean 覆審本 PR 與 SPEC §14 待確認事項（方案與單價、計費字數定義、被併入 repo 的處置、聲音複製、保留期間）。
-2. 核可後依 `SOP.md` 的 M1 工作順序開發；每完成一個 AC 更新本檔與合併清單。
+1. 計費字數規則（標點是否計入、計費月份時區）與方案額度數值、價格（NT$ 三層或 USD 兩層）。
+2. 權利聲明文案（`lib/rights.ts`）的法律覆核；產出保留期間（目前 24 小時）。
+3. 合併清單逐項覆審（本檔「合併清單進度」）。
+4. `GOAL.md`／`SOP.md` 的機密掃描指令改為等價寫法（`sk_l[i]ve_`、`eyJhbGc[i]Oi`），避免指令文字比對到自己；比對結果與原樣式相同。
+5. 合併本 PR 後 `deploy.yml` 會恢復運作並嘗試正式部署——何時合併由 Sean 決定。
+6. PR #1（`chore/prd-rebuild`）尚未合併，本分支包含其文件 commit。
+7. demo mode（未設定 Clerk）下所有訪客共用 `demo-user-001` 與其額度；正式上線前必須設定 Clerk。
+
+## 下一步（M2，不在本次範圍）
+
+私有物件儲存與背景佇列、正式引擎整本轉換、多角色配音、播放頁、NewebPay 沙箱端到端、詞庫管理 UI、BYOK 加密、SSRF 防護。

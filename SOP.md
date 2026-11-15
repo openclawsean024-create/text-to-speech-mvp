@@ -32,6 +32,25 @@ git grep -n -I -E "(sk-(proj-)?[A-Za-z0-9_-]{24,}|sk_l[i]ve_|AIza[0-9A-Za-z_-]{3
 
 AC 對應測試：`pnpm test -- ci-config`（AC-001）、`parser`（AC-002）、`tts-provider`（AC-003）、`audiobook.integration`（AC-004）、`billing`（AC-005）、`lexicon`（AC-006）、`access-control`（AC-007）、`tier-guard`（AC-008）、`docs-consistency`（AC-009）。
 
+## M1 驗證紀錄（2026-11-16，乾淨 clone `feat/m1` @ `3266864`；本機 Node 26.13，GHA 以 Node 20 為準）
+
+| 指令 | 結果 |
+|---|---|
+| `pnpm install --frozen-lockfile` | exit 0（Lockfile is up to date） |
+| `pnpm run ci` | exit 0：typecheck ✅、lint ✅（只有 warning）、test 17 檔 231 案例 ✅、smoke 8/8 ✅、build 19 頁 ✅、e2e 11/11 ✅ |
+| `pnpm test` | exit 0（231 passed） |
+| `pnpm test -- ci-config`（AC-001） | 5 passed |
+| `pnpm test -- parser`（AC-002） | 45 passed |
+| `pnpm test -- tts-provider`（AC-003） | 35 passed |
+| `pnpm test -- audiobook.integration`（AC-004） | 18 passed |
+| `pnpm test -- billing`（AC-005） | 38 passed |
+| `pnpm test -- lexicon`（AC-006） | 18 passed |
+| `pnpm test -- access-control`（AC-007） | 16 passed |
+| `pnpm test -- tier-guard`（AC-008） | 12 passed |
+| `pnpm test -- docs-consistency`（AC-009） | 9 passed |
+| GOAL AC-009 `git grep` 機密掃描 | 無輸出 |
+| `git diff --stat origin/master...HEAD` 中的 `.epub`／`.pdf` | 無 |
+
 ## 本機開發
 
 ```bash
