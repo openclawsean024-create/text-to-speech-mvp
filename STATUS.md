@@ -12,7 +12,7 @@
 | AC-002 | 電子書解析併入 | ✅ 完成 | `parser`（`tests/unit/parser.test.ts` 27 案例＝EB 原測試全數移植；`tests/unit/parser-book-file.test.ts` 18 案例） | `lib/audiobook/parser.ts` 函式本體與 EB 相同；自製 TXT fixture 切出 3 章；>50MB 413、錯誤簽章 415；12,000 字內容不截斷；另支援 EPUB（含 DRM 拒絕）與文字型 PDF |
 | AC-003 | TTS 測試模式 | ✅ 完成 | `tts-provider`（`tests/unit/tts-provider.test.ts` 26 案例；`tests/integration/tts-provider.routes.test.ts` 9 案例） | `global.fetch` 為呼叫即拋錯的 stub、`lib/tts-engines` 換成拋錯間諜；`/api/tts`（5 引擎）、`/api/batch`、`/api/preview` 全部通過，外呼 0 次 |
 | AC-004 | 有聲書轉換流程（Mock） | ✅ 完成 | audiobook.integration（tests/integration/audiobook.integration.test.ts，18 案例）；audio（14）、subtitles（9）為 EB 測試移植 | 3 章 fixture：3 個章節輸出、檔名 {slug}-chapter-XX、SRT／VTT 各 ≥1 段、Mock 呼叫次數＝片段數；進度 done 100%；中途失敗不重試 |
-| AC-005 | 按字數計量與額度 | 未開始 | — | — |
+| AC-005 | 按字數計量與額度 | ✅ 完成（計費字數規則與額度數值【待 Sean 定案】） | billing（tests/unit/billing.test.ts 27 案例；tests/integration/billing.routes.test.ts 11 案例） | 固定計數案例（全形標點、英數、空白、零寬、emoji、NFC）；剛好用完 200、超額 402、合成失敗不扣量、跨月重置；/api/usage 回傳本月字數／上限／剩餘 |
 | AC-006 | 繁中發音校正詞庫 | 未開始 | — | — |
 | AC-007 | 自有內容聲明與存取控制 | ✅ 完成 | access-control（tests/integration/access-control.test.ts，16 案例）、share-link（5 案例） | 未聲明 400、他人 userId 403、匿名 401、擁有者 200（/api/v1/jobs 與 /api/audiobook 皆同）；聲明版本與時間戳記隨工作保存；分享連結只含設定參數 |
 | AC-008 | 方案與 tier 由伺服器端決定 | ✅ 完成 | `tier-guard`（`tests/integration/tier-guard.test.ts`，12 案例） | `/api/tts`、`/api/batch` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage?plan=` 皆不採信；`/api/v1/keys` 匿名 401、無訂閱建立付費 tier 403 |
@@ -26,6 +26,14 @@
 - **`pnpm run ci`** = `typecheck && lint && test && build && e2e`，以 `&&` 串接，任一階段失敗即失敗；`build` 內含原有的 `smoke`。新增 `pnpm run e2e`（原本沒有對應 script）。
 - **GHA `ci.yml`**：job 名稱與註解更新；`OPENAI_API_KEY` 改為固定占位字串、不再讀取 repo secret（CI 不需要也不應該拿到真實金鑰），並加上 `TTS_PROVIDER=mock`。
 - ⚠️ **合併後的連帶影響**：`deploy.yml` 與 `ci.yml` 是同一個安裝問題而失敗；本 PR 合併到 `master` 後 `deploy.yml` 會恢復運作並嘗試 `vercel --prod` 部署。是否要合併、何時部署由 Sean 決定（本次未改動 `deploy.yml`）。
+
+### AC-005 決策紀錄（待 Sean 定案）
+
+- **計費字數規則（沿用 GOAL／SPEC §14-2 預設，⚠️ 待 Sean 定案）**：以詞庫套用與正規化**之前**的原文計算；先 Unicode NFC 正規化；去除所有空白（半形／全形空白、Tab、換行、NBSP）與零寬字元；其餘每個 Unicode 碼位計 1 字——中文、英數、半形與全形標點、符號、emoji 都計入。「標點是否計入」目前為**計入**。規則版本 `m1-default-2026-11`（`lib/billing/char-count.ts`），固定案例見 `tests/unit/billing.test.ts`。
+- **計費月份**：UTC 的 YYYY-MM（每月 1 日 00:00 UTC 重置；是否改台灣時間 ⚠️ 待 Sean 定案）。
+- **流程**：合成前先佔用額度（`used + 字數 ≤ 上限` 才放行，剛好用完允許），成功才確認、失敗退回；超額回 HTTP 402 `CHAR_QUOTA_EXCEEDED`。各引擎字數另外記錄以便對帳。
+- **方案結構**：`config/plans.json`（free／personal／creator／business／custom），**額度為測試值、所有 `price` 為 `null`（待定）**；可用環境變數 `BILLING_PLANS_JSON` 整份覆寫。NT$ 三層或 USD 兩層 ⚠️ 待 Sean 決定；價格未設定時 `/api/billing/checkout` 回 503，定價頁顯示「待定」。
+- 計量資料在 Vercel KV（未設定時為記憶體後備，重啟即遺失，不可用於正式計費）。
 
 ## 與 Notion 商品資料庫的對應
 
