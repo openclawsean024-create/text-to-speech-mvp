@@ -23,7 +23,7 @@
 - AC-008：**方案與 tier 由伺服器端決定**。`/api/tts` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage` 的 `plan` 查詢參數不再採信用戶端值；`/api/v1/keys` 不得在無對應有效訂閱時建立付費 tier key。
   驗證：`pnpm test -- tier-guard` exit 0；涵蓋：用戶端傳 `plan: "pro"` 仍以 free 額度判斷、匿名建立 `business` key 被拒。
 - AC-009：**合併紀錄與文件一致**。`STATUS.md` 合併清單每列標示完成狀態；`SOP.md` 指令與 `package.json` 一致；README 修正 SPEC §13 所列不實描述；repo 內無真實個資、憑證與受著作權保護的測試書籍。
-  驗證：`git grep -n -I -E "(sk-(proj-)?[A-Za-z0-9_-]{24,}|sk_live_|AIza[0-9A-Za-z_-]{30,}|eyJhbGciOi)" -- . ':!pnpm-lock.yaml' ':!package-lock.json'` 無輸出；`git diff --stat master...` 中沒有任何 `.epub`、`.pdf` 書籍檔；Sean 對照 STATUS 合併清單逐項覆審。
+  驗證：`git grep -n -I -E "(sk-(proj-)?[A-Za-z0-9_-]{24,}|sk_l[i]ve_|AIza[0-9A-Za-z_-]{30,}|eyJhbGc[i]Oi)" -- . ':!pnpm-lock.yaml' ':!package-lock.json'` 無輸出；`git diff --stat master...` 中沒有任何 `.epub`、`.pdf` 書籍檔；Sean 對照 STATUS 合併清單逐項覆審。
 
 ## Out of scope
 

@@ -16,7 +16,7 @@
 | AC-006 | 繁中發音校正詞庫 | ✅ 完成 | lexicon（tests/unit/lexicon.test.ts 10 案例；tests/integration/lexicon.routes.test.ts 8 案例） | 最長匹配、同句多詞條、不重疊、使用者覆蓋系統；Mock 收到替換後文字、計費以原文計；/api/tts、/api/batch、/api/audiobook 皆套用；與 Whisper 詞彙表（glossary:）資料分開 |
 | AC-007 | 自有內容聲明與存取控制 | ✅ 完成 | access-control（tests/integration/access-control.test.ts，16 案例）、share-link（5 案例） | 未聲明 400、他人 userId 403、匿名 401、擁有者 200（/api/v1/jobs 與 /api/audiobook 皆同）；聲明版本與時間戳記隨工作保存；分享連結只含設定參數 |
 | AC-008 | 方案與 tier 由伺服器端決定 | ✅ 完成 | `tier-guard`（`tests/integration/tier-guard.test.ts`，12 案例） | `/api/tts`、`/api/batch` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage?plan=` 皆不採信；`/api/v1/keys` 匿名 401、無訂閱建立付費 tier 403 |
-| AC-009 | 合併紀錄與文件一致 | 未開始 | — | — |
+| AC-009 | 合併紀錄與文件一致 | ✅ 完成（STATUS 合併清單待 Sean 逐項覆審） | docs-consistency（tests/unit/docs-consistency.test.ts，9 案例） | 機密掃描 0 筆（scan:secrets 與 GOAL git grep）；無 .epub／.pdf；SOP 指令與 package.json 一致；README 移除 SPEC §13 不實描述；CHANGELOG 新增 M1 並更正 v3.0.2 綠燈描述 |
 
 ### AC-001 決策紀錄
 
@@ -65,21 +65,21 @@
 | 部分 | FR-003 長文分段合併、FR-004 MP3/WAV、FR-005 文件抽文字、FR-006 章節切分（EB）、FR-007 整本轉換（EB）、FR-008 章節標記（EB）、FR-009 合成字幕（EB）、FR-010 多角色（EB）、FR-012 文字正規化、FR-013 情緒目錄、FR-015 批次、FR-016 字數計量、FR-017 NewebPay、FR-018 Clerk 登入、FR-019 BYOK、FR-020 企業 API、FR-021 Podcast 後製、FR-022 Shorts、FR-025 播放／分享、FR-026 RSS（EB）、FR-027 聲音複製（EB，不併入）、FR-029 Mock 測試模式（EB）、FR-030 法務頁 |
 | 未實作 | FR-011 繁中發音校正詞庫、FR-024 自有內容聲明與產出存取控制 |
 
-## 合併清單進度（SPEC §12.1）
+## 合併清單進度（SPEC §12.1；不搬項目見 SPEC §12.2，均未搬入，`test-book.epub` 未搬）
 
 | # | 項目 | 里程碑 | 狀態 |
 |---|---|---|---|
-| 1 | parser + 測試 | M1 | 未開始 |
-| 2 | TTS provider 介面、Orchestrator、Mock + 測試 | M1 | 未開始 |
-| 3 | audio（章節標記、命名、ID3）+ 測試 | M1 | 未開始 |
-| 4 | subtitles（合成時序字幕）+ 測試 | M1 | 未開始 |
-| 5 | 字數額度規則 | M1 | 未開始 |
-| 6 | 整合測試寫法 | M1 | 未開始 |
-| 7 | 有聲書轉換流程（Mock） | M1 | 未開始 |
-| 8 | characters（多角色） | M2 | 未開始 |
-| 9 | 播放／分享頁 | M2 | 未開始 |
-| 10 | RSS | M3 | 未開始 |
-| 11 | 權利聲明文案 | M1 | 未開始 |
+| 1 | parser + 測試 | M1 | ✅ M1 完成：`lib/audiobook/parser.ts`（函式本體與 EB 相同）＋ 27 個原測試 |
+| 2 | TTS provider 介面、Orchestrator、Mock + 測試 | M1 | ✅ M1 完成：`lib/tts/provider.ts`（介面、Orchestrator、Mock）；EB 的 Google／Azure stub 未搬，改包裝 `lib/tts-engines.js` |
+| 3 | audio（章節標記、命名、ID3）+ 測試 | M1 | ✅ M1 完成：`lib/audiobook/audio.ts`＋ 13 個原測試（`Character` 改為 `Speaker`） |
+| 4 | subtitles（合成時序字幕）+ 測試 | M1 | ✅ M1 完成：`lib/audiobook/subtitles.ts`＋ 9 個原測試；與 `post-process.js`（Whisper 用）並存 |
+| 5 | 字數額度規則 | M1 | ✅ M1 完成：規則改寫至 `lib/billing/usage.ts`（KV），未搬 Supabase |
+| 6 | 整合測試寫法 | M1 | ✅ M1 完成：改寫為 `tests/integration/audiobook.integration.test.ts`；EB `api-routes.test.ts` 測的是不搬的 RSS／preview 路由，未移植 |
+| 7 | 有聲書轉換流程（Mock） | M1 | ✅ M1 完成（Mock）：`lib/audiobook/pipeline.ts`、`/api/audiobook`；修正重複合成；正式引擎屬 M2 |
+| 8 | characters（多角色） | M2 | 未開始（M2，本次不做） |
+| 9 | 播放／分享頁 | M2 | 未開始（M2，本次不做） |
+| 10 | RSS | M3 | 未開始（M3，本次不做） |
+| 11 | 權利聲明文案 | M1 | ✅ M1 完成：`lib/rights.ts` 權利聲明（文案待法律覆核） |
 
 ## 發現的風險（本次盤點）
 

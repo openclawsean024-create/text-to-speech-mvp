@@ -14,8 +14,9 @@ pnpm run ci
 # Equivalent to:
 pnpm run typecheck   # tsc --noEmit
 pnpm run lint         # next lint
-pnpm run smoke        # node scripts/ci-smoke.js (8 critical tests)
-pnpm run build        # next build (includes typecheck + lint)
+pnpm run test         # vitest run（單元＋整合，Mock TTS、不連網）
+pnpm run build        # pnpm run smoke && next build
+pnpm run e2e          # node --test e2e/smoke.test.mjs（需先 build）
 ```
 
 The `smoke` step verifies:
@@ -27,7 +28,7 @@ The `smoke` step verifies:
 - ✅ TTS prompt catalog: 5 engines, 12 emotions, 12 roles, 12 presets
 - ✅ 繁中 text normalization function exported
 
-`prebuild` is also wired: any `pnpm run build` runs `pnpm run smoke` first.
+`pnpm run build` runs `pnpm run smoke` first. 實際 workflow 以 `.github/workflows/ci.yml` 為準。
 
 ## 2. Vercel build integration
 
@@ -72,7 +73,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --prefer-offline
 
-      - name: Run CI (typecheck + lint + smoke + build)
+      - name: Run CI (typecheck + lint + test + build + e2e)
         run: pnpm run ci
 
       - name: Upload build artifacts

@@ -23,12 +23,14 @@ lib/                    tts-engines.js、tts-prompts.js、whisper.js、post-proc
                         shorts.js、newebpay.js、webhook.js、db.ts、jobs.ts、api-keys.ts、
                         glossary.ts、subscriptions.ts、voices.ts、rate-limits.ts
 scripts/ci-smoke.js     模組載入 smoke 測試
+scripts/secret-scan.mjs 機密樣式掃描（pnpm run scan:secrets）
+tests/                  vitest 單元／整合測試（測試名稱標 AC 編號）、fixtures（自編短文）
 e2e/smoke.test.mjs      建置後結構檢查（node:test）
 PRD/                    SPEC.md、CHANGELOG.md
 api/、index*.html、landing.html、pricing.html、dashboard.html   舊版遺留檔（推定未部署，勿新增依賴）
 ```
 
-M1 預計新增 `lib/audiobook/`（parser、audio、subtitles）、TTS provider／Mock、詞庫與字數計量模組及對應測試（見 GOAL）。
+M1 新增：`lib/audiobook/`（parser、extract、epub-reader、audio、subtitles、pipeline、jobs、service）、`lib/tts/`（provider、synthesis、Mock）、`lib/billing/`（方案、字數、額度）、`lib/lexicon/`、`lib/identity.ts`、`lib/access-control.ts`、`lib/rights.ts`、`lib/share.ts`、`config/plans.json`。
 
 ## 3. 技術棧
 
@@ -48,7 +50,7 @@ M1 預計新增 `lib/audiobook/`（parser、audio、subtitles）、TTS provider�
 - **測試與 CI 不呼叫付費 TTS／LLM API**：一律使用 Mock provider；真實金流、正式引擎呼叫列為 M1 範圍外。
 - **保留 demo mode**：未設定 Clerk／KV 也要能跑；寫入路徑需有記憶體後備並在文件註明。
 - **方案、tier、額度由伺服器端決定**，不得信任用戶端傳入值。
-- **不混用鎖定檔**：以 `pnpm-lock.yaml` 為準，改依賴只動 `package.json` 並用 pnpm 安裝（`package-lock.json` 是否移除待 Sean 決定）。
+- **不混用鎖定檔**：只保留 `pnpm-lock.yaml`（`package-lock.json` 已於 M1 AC-001 移除，理由見 STATUS.md），改依賴只動 `package.json` 並用 pnpm 安裝。
 - **不擅自加 CI 步驟**：`pnpm run ci` 為單一進入點；新增檢查先寫入 `package.json` script 並更新 `SOP.md`。
 - **不 commit build 產物**：`.next/`、`node_modules/`、`*.log`、`.vercel/`；`tsconfig.tsbuildinfo` 已被追蹤，移除需另開 PR。
 - **跨專案邊界**：不與其他專案共用 deploy pipeline、認證或 KV namespace。
@@ -56,7 +58,7 @@ M1 預計新增 `lib/audiobook/`（parser、audio、subtitles）、TTS provider�
 
 ## 5. 驗證命令
 
-完整清單與現況見 [`SOP.md`](./SOP.md)。交付前至少：`pnpm install --frozen-lockfile`、`pnpm run typecheck`、`pnpm run lint`、`pnpm run smoke`、`pnpm run build`、`node --test e2e/smoke.test.mjs`。單元測試（`pnpm test`）尚未配置，屬 M1 AC-001。
+完整清單與現況見 [`SOP.md`](./SOP.md)。交付前至少：`pnpm install --frozen-lockfile`、`pnpm run ci`（= typecheck → lint → test → build（含 smoke）→ e2e）、`pnpm run scan:secrets`。
 
 ## 6. Commit 規則
 
