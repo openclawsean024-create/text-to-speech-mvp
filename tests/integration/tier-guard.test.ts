@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { POST as ttsPost } from '@/app/api/tts/route'
 import { POST as batchPost } from '@/app/api/batch/route'
 import { GET as usageGet } from '@/app/api/usage/route'
@@ -10,16 +10,6 @@ import { storeUserSubscription, cancelUserSubscription } from '@/lib/subscriptio
 import { DEMO_USER_ID } from '@/lib/identity'
 import { signInAs, signOut, unconfigureClerk } from '../helpers/auth'
 import { jsonRequest, getRequest, uniqueUser } from '../helpers/http'
-
-// AC-003 完成前的暫時措施：以假引擎取代 lib/tts-engines，避免呼叫付費 API。
-vi.mock('@/lib/tts-engines', () => {
-  const synthesize = async ({ engine }: { engine?: string }) => ({
-    audio: Buffer.from('fake-audio'),
-    contentType: 'audio/mpeg',
-    engine: engine ?? 'openai',
-  })
-  return { default: { synthesize }, synthesize, SUPPORTED_ENGINES: ['openai', 'elevenlabs', 'kokoro', 'azure', 'google'] }
-})
 
 const FREE = getPlanOrFree('free')
 const FREE_LIMIT = FREE.monthlyCharLimit as number

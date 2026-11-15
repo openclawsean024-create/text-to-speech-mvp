@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | AC-001 | CI 可重跑 | ✅ 完成（GHA run 連結待 PR 補上） | `ci-config`（`tests/unit/ci-config.test.ts`，5 案例） | `pnpm install --frozen-lockfile` exit 0；`pnpm run ci` exit 0 |
 | AC-002 | 電子書解析併入 | ✅ 完成 | `parser`（`tests/unit/parser.test.ts` 27 案例＝EB 原測試全數移植；`tests/unit/parser-book-file.test.ts` 18 案例） | `lib/audiobook/parser.ts` 函式本體與 EB 相同；自製 TXT fixture 切出 3 章；>50MB 413、錯誤簽章 415；12,000 字內容不截斷；另支援 EPUB（含 DRM 拒絕）與文字型 PDF |
-| AC-003 | TTS 測試模式 | 未開始 | — | — |
+| AC-003 | TTS 測試模式 | ✅ 完成 | `tts-provider`（`tests/unit/tts-provider.test.ts` 26 案例；`tests/integration/tts-provider.routes.test.ts` 9 案例） | `global.fetch` 為呼叫即拋錯的 stub、`lib/tts-engines` 換成拋錯間諜；`/api/tts`（5 引擎）、`/api/batch`、`/api/preview` 全部通過，外呼 0 次 |
 | AC-004 | 有聲書轉換流程（Mock） | 未開始 | — | — |
 | AC-005 | 按字數計量與額度 | 未開始 | — | — |
 | AC-006 | 繁中發音校正詞庫 | 未開始 | — | — |
