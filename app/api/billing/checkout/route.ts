@@ -48,15 +48,25 @@ export async function POST(req: NextRequest) {
     })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
+    if ((err as { code?: string })?.code === 'PRICE_NOT_CONFIGURED') {
+      return NextResponse.json({ error: msg, code: 'PRICE_NOT_CONFIGURED' }, { status: 503 })
+    }
     return NextResponse.json({ error: msg, code: 'CHECKOUT_FAIL' }, { status: 500 })
   }
 }
 
 export async function GET() {
+  const tiers = Object.fromEntries(
+    Object.entries(NEWEBPAY_TIERS).map(([id, t]) => [
+      id,
+      { code: t.code, name: t.name, tier: t.tier, amount: t.amount, price_configured: t.amount !== null },
+    ]),
+  )
   return NextResponse.json({
     ok: true,
-    tiers: NEWEBPAY_TIERS,
-    note: 'POST {tier: "personal|creator|business"} to create a NewebPay checkout session.',
+    mode: 'test',
+    tiers,
+    note: 'POST {tier: "personal|creator|business"} to create a NewebPay checkout session (test mode only in M1). amount=null 表示價格尚未決定，無法結帳。',
   })
 }
 

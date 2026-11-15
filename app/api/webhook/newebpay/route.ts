@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { decryptNotify, verifyNotify, resolveTierFromTrade } from '@/lib/newebpay'
+import { decryptNotify, verifyNotify, resolveTierFromTrade, summarizeTradeForLog } from '@/lib/newebpay'
 import { storeUserSubscription } from '@/lib/subscriptions'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +17,9 @@ export const dynamic = 'force-dynamic'
  *   - Determine tier from ProdCode or amount
  *   - Upgrade user subscription
  *   - Return "OK" (NewebPay requires plain text response, not JSON)
+ *
+ * Log 規則：絕不輸出解密後的完整交易內容（含 Email、付款資訊等個資），
+ * 只記錄 summarizeTradeForLog() 的訂單號／狀態／方案代碼／金額。
  */
 export async function POST(req: NextRequest) {
   try {
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
     try {
       decrypted = decryptNotify(tradeInfoHex)
     } catch (err) {
-      console.error('[newebpay] Decrypt failed:', err)
+      console.error('[newebpay] Decrypt failed:', err instanceof Error ? err.message : 'unknown error')
       return new NextResponse('DECRYPT_FAIL', { status: 400 })
     }
 
@@ -54,7 +57,8 @@ export async function POST(req: NextRequest) {
       return new NextResponse('INVALID_SIGNATURE', { status: 400 })
     }
 
-    console.log('[newebpay] Decrypted:', JSON.stringify(decrypted))
+    const tradeSummary = summarizeTradeForLog(decrypted)
+    console.log('[newebpay] Notify received:', JSON.stringify(tradeSummary))
 
     // Only process successful payments
     const tradeStatus = decrypted.Status || status
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     const tier = resolveTierFromTrade(decrypted)
     if (!tier) {
-      console.warn('[newebpay] Could not resolve tier from trade:', decrypted)
+      console.warn('[newebpay] Could not resolve tier for order:', tradeSummary.orderNo)
       return new NextResponse('UNKNOWN_TIER', { status: 400 })
     }
 
@@ -84,12 +88,12 @@ export async function POST(req: NextRequest) {
       autoRenew: false,
     })
 
-    console.log(`[newebpay] Upgraded ${userId} → ${tier} (NT$${amt})`)
+    console.log(`[newebpay] Subscription updated: order=${tradeSummary.orderNo} tier=${tier}`)
 
     // NewebPay expects plain text "OK" or "SUCCESS" response
     return new NextResponse('OK')
   } catch (err: unknown) {
-    console.error('[newebpay] Webhook error:', err)
+    console.error('[newebpay] Webhook error:', err instanceof Error ? err.message : 'unknown error')
     return new NextResponse('INTERNAL_ERROR', { status: 500 })
   }
 }

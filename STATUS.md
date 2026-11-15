@@ -15,7 +15,7 @@
 | AC-005 | 按字數計量與額度 | 未開始 | — | — |
 | AC-006 | 繁中發音校正詞庫 | 未開始 | — | — |
 | AC-007 | 自有內容聲明與存取控制 | 未開始 | — | — |
-| AC-008 | 方案與 tier 由伺服器端決定 | 未開始 | — | — |
+| AC-008 | 方案與 tier 由伺服器端決定 | ✅ 完成 | `tier-guard`（`tests/integration/tier-guard.test.ts`，12 案例） | `/api/tts`、`/api/batch` 的 `plan`、`/api/glossary` 的 `tier`、`/api/usage?plan=` 皆不採信；`/api/v1/keys` 匿名 401、無訂閱建立付費 tier 403 |
 | AC-009 | 合併紀錄與文件一致 | 未開始 | — | — |
 
 ### AC-001 決策紀錄

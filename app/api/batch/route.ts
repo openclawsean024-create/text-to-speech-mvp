@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { getUserApiKeys, checkRateLimit, incrementUsage } from '@/lib/db'
+import { getUserApiKeys, incrementUsage } from '@/lib/db'
 import { synthesize } from '@/lib/tts-engines'
+import { resolveIdentity, identityUserId } from '@/lib/identity'
+import { resolveServerPlan } from '@/lib/billing/plans'
+import { countBillableChars } from '@/lib/billing/char-count'
+import { reserveChars, commitChars, refundChars, quotaExceededBody } from '@/lib/billing/usage'
 
 const ALLOWED_ENGINES = ['openai', 'elevenlabs', 'kokoro']
 
@@ -150,7 +153,8 @@ async function synthesizeTask(params: {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { tasks, plan = 'free' } = body
+    // 注意：body.plan 不採信（AC-008）。方案一律由伺服器端依訂閱紀錄決定。
+    const { tasks } = body
 
     if (!Array.isArray(tasks) || tasks.length === 0) {
       return NextResponse.json({ error: 'tasks must be a non-empty array' }, { status: 400 })
@@ -159,19 +163,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Maximum 10 tasks per batch' }, { status: 400 })
     }
 
-    // ── Auth (optional for batch) ───────────────────────────────
-    let userId: string | null = null
-    try {
-      const authResult = await auth().catch(() => ({ userId: null as string | null })).catch(() => ({ userId: null as string | null }))
-      userId = authResult.userId
-    } catch { /* not logged in */ }
-
-    if (userId) {
-      const rateLimitInfo = await checkRateLimit(userId, plan)
-      if (!rateLimitInfo.allowed) {
-        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
-      }
+    // ── 身分與方案（伺服器端決定）────────────────────────────────
+    const identity = await resolveIdentity(req)
+    const userId = identityUserId(identity)
+    if (!userId) {
+      return NextResponse.json({ error: '請先登入後再使用批次轉換。', code: 'NO_AUTH' }, { status: 401 })
     }
+    const plan = await resolveServerPlan(identity)
 
     // ── Resolve API Key from first task or user keys ───────────
     const firstTask = tasks[0]
@@ -180,7 +178,7 @@ export async function POST(req: NextRequest) {
     let apiKey = (firstTask.apiKey as string | undefined)?.trim()
       || (firstTask.api_key as string | undefined)?.trim()
 
-    if (!apiKey && userId) {
+    if (!apiKey) {
       const keys = await getUserApiKeys(userId)
       apiKey = (keys as Record<string, string>)[engine]
     }
@@ -203,24 +201,36 @@ export async function POST(req: NextRequest) {
       audioUrl?: string
       contentType?: string
       error?: string
+      code?: string
+      status?: number
+      billableChars?: number
       isChunked?: boolean
       totalChunks?: number
     }> = []
 
     for (const task of tasks) {
+      const { id, text, voice: frontendVoice, speed = 1.0, format = 'mp3' } = task
+
+      if (!text || typeof text !== 'string' || !text.trim()) {
+        results.push({ id, success: false, error: 'text is required' })
+        continue
+      }
+
+      if (!ALLOWED_ENGINES.includes(engine)) {
+        results.push({ id, success: false, error: `Invalid engine: ${engine}` })
+        continue
+      }
+
+      // 每個任務各自佔用額度；超額的任務回報 402，不影響已完成的任務
+      const billableChars = countBillableChars(text)
+      const reserved = await reserveChars(userId, plan, billableChars)
+      if (reserved.ok === false) {
+        const exceeded = quotaExceededBody(reserved.status, reserved.requested)
+        results.push({ id, success: false, error: exceeded.error, code: exceeded.code, status: 402 })
+        continue
+      }
+
       try {
-        const { id, text, voice: frontendVoice, speed = 1.0, format = 'mp3' } = task
-
-        if (!text || typeof text !== 'string' || !text.trim()) {
-          results.push({ id, success: false, error: 'text is required' })
-          continue
-        }
-
-        if (!ALLOWED_ENGINES.includes(engine)) {
-          results.push({ id, success: false, error: `Invalid engine: ${engine}` })
-          continue
-        }
-
         const voice = resolveVoice(engine, frontendVoice) || frontendVoice
         const result = await synthesizeTask({
           engine,
@@ -231,42 +241,50 @@ export async function POST(req: NextRequest) {
           format: format === 'wav' ? 'wav' : 'mp3',
         })
 
-        // Upload audio to temporary URL via a simple approach
-        // In production this would upload to S3/R2; here we return base64 data URL
+        // In production this would upload to private object storage (M2); here we return a base64 data URL
         const base64 = result.audio.toString('base64')
-        const ext = format === 'wav' ? 'wav' : 'mp3'
         const audioUrl = `data:${result.contentType};base64,${base64}`
+
+        await commitChars(reserved.reservation, engine)
+        await incrementUsage(userId)
 
         results.push({
           id,
           success: true,
           audioUrl,
           contentType: result.contentType,
+          billableChars,
           isChunked: result.isChunked,
           totalChunks: result.totalChunks,
         })
-
-        if (userId) {
-          await incrementUsage(userId)
-        }
       } catch (err: unknown) {
+        // 合成失敗不計字數
+        await refundChars(reserved.reservation).catch(() => {})
         const message = err instanceof Error ? err.message : 'Unknown error'
         results.push({ id: task.id, success: false, error: message })
       }
     }
 
+    // 全部任務都因額度不足而失敗時，整個請求回 402
+    const allQuotaExceeded = results.length > 0 && results.every(r => r.status === 402)
+
     return NextResponse.json({
       results,
       processed: results.filter(r => r.success).length,
       failed: results.filter(r => !r.success).length,
+      plan: plan.id,
+      ...(allQuotaExceeded
+        ? { error: '本月字數額度不足，請升級方案或等待下個計費月份。', code: 'CHAR_QUOTA_EXCEEDED' }
+        : {}),
     }, {
+      status: allQuotaExceeded ? 402 : 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'no-store',
       },
     })
   } catch (err: unknown) {
-    console.error('[Batch] Error:', err)
+    console.error('[Batch] Error:', err instanceof Error ? err.message : 'unknown error')
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: `Batch processing failed: ${message}` }, { status: 500 })
   }

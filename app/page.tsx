@@ -28,7 +28,6 @@ export default function HomePage() {
 
   const [mode, setMode] = useState<'browser' | 'api'>('browser')
   const [engine, setEngine] = useState('openai')
-  const [plan, setPlan] = useState('free')
   const [voice, setVoice] = useState('zh-CN')
   const [text, setText] = useState('')
   const [speed, setSpeed] = useState(1)
@@ -109,7 +108,6 @@ export default function HomePage() {
       if (saved) {
         const s = JSON.parse(saved)
         setEngine(s.engine || 'openai')
-        setPlan(s.plan || 'free')
         setVoice(s.voice || 'zh-CN')
         setApiKeyInput('')
       }
@@ -118,9 +116,9 @@ export default function HomePage() {
 
   const persistSettings = useCallback(() => {
     if (user) {
-      localStorage.setItem(`tts_settings_${(user as any)?.id || 'anonymous'}`, JSON.stringify({ engine, plan, voice }))
+      localStorage.setItem(`tts_settings_${(user as any)?.id || 'anonymous'}`, JSON.stringify({ engine, voice }))
     }
-  }, [user, engine, plan, voice])
+  }, [user, engine, voice])
 
   const handleConvert = async () => {
     if (!text.trim()) { showStatus(t('status.noText'), 'error'); return }
@@ -170,7 +168,8 @@ export default function HomePage() {
     setChunkProgress(null)
     setIsMerging(false)
 
-    const body: Record<string, unknown> = { text, engine, voice, speed, plan, format: downloadFormat }
+    // 方案與額度由伺服器端決定，不傳 plan
+    const body: Record<string, unknown> = { text, engine, voice, speed, format: downloadFormat }
     if (apiKeyInput.trim()) body.apiKey = apiKeyInput.trim()
 
     // Show chunking info if text is large
@@ -201,8 +200,12 @@ export default function HomePage() {
       setChunkProgress(null)
 
       // Show user-friendly guidance based on error code
-      if (res.status === 429) {
-        msg = `使用量已達上限（${plan} 方案：${t('nav.pricing')}），請明天再試或升級方案`
+      if (res.status === 402 && errCode === 'CHAR_QUOTA_EXCEEDED') {
+        msg = `本月字數額度已用完（${t('nav.pricing')}），請升級方案或等待下個月重置`
+      } else if (res.status === 429) {
+        msg = '引擎服務暫時忙碌，請稍後再試'
+      } else if (res.status === 401 && errCode === 'NO_AUTH') {
+        msg = t('status.loginRequired')
       } else if (res.status === 401 || errCode === 'INVALID_API_KEY') {
         msg = 'API Key 無效，請至控制台更新你的 API Key'
       } else if (res.status === 402 || errCode === 'QUOTA_EXCEEDED') {
@@ -701,27 +704,10 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Plan Selection */}
-                <div>
-                  <span className="label">{t('mode.plan')}</span>
-                  <div className="flex gap-3">
-                    {[
-                      ['free', 'Free', '10/day', ''],
-                      ['starter', 'Starter', '100次/天', ''],
-                      ['pro', 'Pro', '1000次/天', 'badge badge-cyan'],
-                    ].map(([id, label, badge, badgeClass]) => (
-                      <button key={id}
-                        className={`flex-1 py-3 px-3 rounded-xl border text-center transition-all ${badgeClass || ''}`}
-                        style={plan === id
-                          ? { borderColor: 'var(--primary)', background: 'rgba(124,58,237,0.12)', boxShadow: '0 0 0 1px var(--primary)' }
-                          : { background: 'var(--surface)', borderColor: 'var(--border)' }
-                        }
-                        onClick={() => setPlan(id as string)}>
-                        <div className="font-bold text-sm" style={{ color: plan === id ? 'var(--primary-light)' : 'var(--text-2)' }}>{label}</div>
-                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{badge}</div>
-                      </button>
-                    ))}
-                  </div>
+                {/* 方案與每月字數額度由伺服器端依訂閱決定（不可由用戶端選擇） */}
+                <div className="text-xs" style={{ color: 'var(--text-3)' }}>
+                  {t('mode.plan')}：依訂閱由系統決定，用量以字數計算。
+                  {' '}<Link href="/dashboard" className="underline">查看本月用量</Link>
                 </div>
 
                 {!user && clerkConfigured && (

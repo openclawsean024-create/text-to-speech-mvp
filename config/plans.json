@@ -1,0 +1,46 @@
+{
+  "note": "方案結構設定檔。額度為【測試值】、價格尚未決定（price: null）——方案名稱、每月字數額度與單價皆待 Sean 定案（PRD/SPEC.md §14-1）。部署時可用環境變數 BILLING_PLANS_JSON 覆寫整份設定，不需改程式。",
+  "valuesAreTestOnly": true,
+  "plans": [
+    {
+      "id": "free",
+      "name": "免費版",
+      "paid": false,
+      "monthlyCharLimit": 10000,
+      "lexiconEntryLimit": 20,
+      "price": null
+    },
+    {
+      "id": "personal",
+      "name": "個人版",
+      "paid": true,
+      "monthlyCharLimit": 100000,
+      "lexiconEntryLimit": 50,
+      "price": null
+    },
+    {
+      "id": "creator",
+      "name": "創作者版",
+      "paid": true,
+      "monthlyCharLimit": 500000,
+      "lexiconEntryLimit": 200,
+      "price": null
+    },
+    {
+      "id": "business",
+      "name": "企業版",
+      "paid": true,
+      "monthlyCharLimit": 2000000,
+      "lexiconEntryLimit": 500,
+      "price": null
+    },
+    {
+      "id": "custom",
+      "name": "客製方案",
+      "paid": true,
+      "monthlyCharLimit": null,
+      "lexiconEntryLimit": 500,
+      "price": null
+    }
+  ]
+}

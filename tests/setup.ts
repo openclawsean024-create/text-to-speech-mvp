@@ -6,6 +6,7 @@
  * 3. 每個測試前清空環境中的引擎金鑰，避免本機 .env 影響結果。
  */
 import { beforeEach, vi } from 'vitest'
+import { resetMemoryStoreForTests } from '@/lib/kv-store'
 
 type TestGlobals = typeof globalThis & {
   __FETCH_CALLS__: string[]
@@ -51,4 +52,7 @@ beforeEach(() => {
   env.TTS_PROVIDER = 'mock'
   delete process.env.CLERK_SECRET_KEY
   delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  delete process.env.BILLING_PLANS_JSON
+  delete process.env.NEWEBPAY_MODE
+  resetMemoryStoreForTests()
 })

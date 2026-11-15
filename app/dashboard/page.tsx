@@ -12,7 +12,16 @@ import {
 } from 'lucide-react'
 
 type UsageData = {
-  today: { used: number; limit: number }
+  plan: { id: string; name: string; paid: boolean }
+  chars: {
+    period: string
+    used: number
+    limit: number | null
+    remaining: number | null
+    resetsAt: string
+    limitIsTestValue: boolean
+  }
+  today: { used: number }
   monthly: { used: number }
   history: { date: string; count: number }[]
 }
@@ -23,7 +32,6 @@ export default function DashboardPage() {
   const { user, isLoaded } = useClerkUser()
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [apiKeys, setApiKeys] = useState<ApiKeys | null>(null)
-  const [plan, setPlan] = useState('free')
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [newKey, setNewKey] = useState('')
   const [saving, setSaving] = useState(false)
@@ -39,14 +47,13 @@ export default function DashboardPage() {
     if (user) {
       fetchUsage()
       fetchApiKeys()
-      const savedPlan = localStorage.getItem(`tts_plan_${(user as any)?.id || 'anonymous'}`)
-      if (savedPlan) setPlan(savedPlan)
     }
   }, [user])
 
   const fetchUsage = async () => {
     try {
-      const res = await fetch(`/api/usage?plan=${plan}`)
+      // 方案由伺服器端依訂閱紀錄決定，不由用戶端指定
+      const res = await fetch('/api/usage')
       if (res.ok) {
         const data = await res.json()
         setUsage(data)
@@ -98,14 +105,6 @@ export default function DashboardPage() {
     setSaving(false)
   }
 
-  const savePlan = (p: string) => {
-    if (!user) return
-    setPlan(p)
-    localStorage.setItem(`tts_plan_${(user as any)?.id || 'anonymous'}`, p)
-    showStatus(`方案已切換為 ${p}`, 'success')
-  }
-
-  const LIMITS: Record<string, number> = { free: 10, starter: 100, pro: 1000 }
 
   if (!isLoaded) {
     return (
@@ -131,8 +130,9 @@ export default function DashboardPage() {
     )
   }
 
-  const todayLimit = LIMITS[plan] || 10
-  const todayPct = usage ? Math.min((usage.today.used / todayLimit) * 100, 100) : 0
+  const charLimit = usage?.chars.limit ?? null
+  const charUsed = usage?.chars.used ?? 0
+  const charPct = usage && charLimit ? Math.min((charUsed / charLimit) * 100, 100) : 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -155,24 +155,13 @@ export default function DashboardPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
 
-        {/* Plan Selector */}
+        {/* Current plan (server-side, read-only) */}
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <div className="font-bold mb-3"><Rocket size={12} className="inline" /> 當前方案</div>
-          <div className="flex gap-2">
-            {[
-              ['free', '<Globe size={12} className="inline" /> 免費', '10次/天'],
-              ['starter', '<Zap size={12} className="inline" /> Starter', '100次/天'],
-              ['pro', '<Rocket size={12} className="inline" /> Pro', '1000次/天'],
-            ].map(([id, label, limit]) => (
-              <button key={id}
-                className={`flex-1 py-3 rounded-xl border-2 text-sm font-semibold transition-colors ${plan === id ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200'}`}
-                onClick={() => savePlan(id as string)}>
-                <div>{label}</div>
-                <div className="font-normal text-xs opacity-70">{limit}</div>
-              </button>
-            ))}
+          <div className="text-2xl font-bold">{usage?.plan.name ?? '—'}</div>
+          <div className="text-xs text-gray-400 mt-2">
+            <Lightbulb size={12} className="inline" /> 方案依訂閱紀錄由伺服器端決定，無法在此切換；升級請至定價頁。
           </div>
-          <div className="text-xs text-gray-400 mt-2"><Lightbulb size={12} className="inline" /> 方案切換即時生效，用量重置時間為每天午夜 UTC</div>
         </div>
 
         {/* Tab Toggle */}
@@ -199,32 +188,35 @@ export default function DashboardPage() {
         {/* Usage Tab */}
         {activeTab === 'usage' && (
           <>
-            {/* Today Stats */}
+            {/* Monthly character quota (billing unit) */}
             <div className="bg-white rounded-2xl p-5 shadow-sm">
-              <div className="font-bold mb-4"><Calendar size={12} className="inline" /> 今日使用量</div>
+              <div className="font-bold mb-4"><Calendar size={12} className="inline" /> 本月字數用量</div>
               <div className="flex items-end gap-3 mb-4">
-                <span className="text-5xl font-bold">{usage?.today.used ?? '-'}</span>
-                <span className="text-gray-400 text-lg mb-1">/ {todayLimit} 次</span>
+                <span className="text-5xl font-bold">{usage ? charUsed.toLocaleString() : '-'}</span>
+                <span className="text-gray-400 text-lg mb-1">/ {charLimit === null ? '不限' : charLimit.toLocaleString()} 字</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${todayPct > 80 ? 'bg-red-500' : todayPct > 50 ? 'bg-orange-400' : 'bg-blue-500'}`}
-                  style={{ width: `${todayPct}%` }}
+                  className={`h-full rounded-full transition-all ${charPct > 80 ? 'bg-red-500' : charPct > 50 ? 'bg-orange-400' : 'bg-blue-500'}`}
+                  style={{ width: `${charPct}%` }}
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-400 mt-1.5">
-                <span>{todayPct.toFixed(0)}% 使用</span>
-                <span>{Math.max(0, todayLimit - (usage?.today.used ?? 0))} 次剩餘</span>
+                <span>{charPct.toFixed(0)}% 使用</span>
+                <span>{usage?.chars.remaining === null || usage?.chars.remaining === undefined ? '—' : `${usage.chars.remaining.toLocaleString()} 字剩餘`}</span>
               </div>
+              {usage?.chars.limitIsTestValue && (
+                <div className="text-xs text-gray-400 mt-2">額度為測試值，正式數值尚未公布。</div>
+              )}
             </div>
 
-            {/* Monthly Stats */}
+            {/* Request counts (display only) */}
             <div className="bg-white rounded-2xl p-5 shadow-sm">
-              <div className="font-bold mb-3"><Calendar size={12} className="inline" /> 本月使用量</div>
-              <div className="text-3xl font-bold mb-1">{usage?.monthly.used ?? '-'} <span className="text-base font-normal text-gray-400">次</span></div>
+              <div className="font-bold mb-3"><Calendar size={12} className="inline" /> 轉換次數</div>
+              <div className="text-3xl font-bold mb-1">{usage?.monthly.used ?? '-'} <span className="text-base font-normal text-gray-400">次（本月）</span></div>
               {usage && (
                 <div className="text-xs text-gray-400">
-                  日均 {Math.round(usage.monthly.used / new Date().getDate())} 次
+                  今日 {usage.today.used} 次・日均 {Math.round(usage.monthly.used / new Date().getDate())} 次（次數僅供參考，不作為額度依據）
                 </div>
               )}
             </div>

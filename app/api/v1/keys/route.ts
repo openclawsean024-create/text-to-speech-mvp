@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { createApiKey, listApiKeys, revokeApiKey, TIER_LIMITS, Tier } from '@/lib/api-keys'
-import { getApiKeyUsage, listJobsForApiKey } from '@/lib/jobs'
+import { getApiKeyUsage } from '@/lib/jobs'
+import { resolveIdentity, identityUserId } from '@/lib/identity'
+import { resolveServerPlan, planCovers } from '@/lib/billing/plans'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,14 +11,26 @@ interface KeyCreateBody {
   label?: string
 }
 
-export async function GET(req: NextRequest) {
-  // Two paths:
-  //   1. Web user via Clerk session → manage their own keys
-  //   2. Self-service key generation without login (for demo mode) — return generated key
-  const { userId } = await auth().catch(() => ({ userId: null }))
+/**
+ * 企業 API key 管理。
+ *
+ * 擁有者一律由伺服器端身分決定（Clerk userId；未設定 Clerk 時為 demo 使用者）。
+ * 不再以 `x-forwarded-for` 等可偽造的標頭當作擁有者，匿名一律 401。
+ * 可建立的 tier 不得高於呼叫者目前的有效訂閱方案（AC-008）。
+ */
+async function resolveOwner(req: NextRequest) {
+  // 管理金鑰本身不接受以 API key 驗證
+  const identity = await resolveIdentity(req, { allowApiKey: false })
+  return { identity, ownerId: identityUserId(identity) }
+}
 
-  // Demo mode without Clerk — use a synthetic owner
-  const ownerId = userId || `demo-${req.headers.get('x-forwarded-for') || 'anonymous'}`
+function unauthorized() {
+  return NextResponse.json({ error: 'Authentication required', code: 'NO_AUTH' }, { status: 401 })
+}
+
+export async function GET(req: NextRequest) {
+  const { identity, ownerId } = await resolveOwner(req)
+  if (!ownerId) return unauthorized()
 
   const keys = await listApiKeys(ownerId)
   const enriched = []
@@ -39,7 +52,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     owner_id: ownerId,
-    authenticated: userId !== null,
+    authenticated: identity.kind === 'user',
+    demo: identity.kind === 'demo',
     keys: enriched,
   })
 }
@@ -56,8 +70,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Invalid tier: ${tier}`, code: 'BAD_TIER' }, { status: 400 })
   }
 
-  const { userId } = await auth().catch(() => ({ userId: null }))
-  const ownerId = userId || `demo-${req.headers.get('x-forwarded-for') || 'anonymous'}`
+  const { identity, ownerId } = await resolveOwner(req)
+  if (!ownerId) return unauthorized()
+
+  // tier 由伺服器端核定：不得高於目前有效訂閱方案
+  const plan = await resolveServerPlan(identity)
+  if (!planCovers(plan.id, tier)) {
+    return NextResponse.json(
+      {
+        error: `目前方案（${plan.id}）無法建立 ${tier} 等級的 API key，請先升級訂閱。`,
+        code: 'TIER_NOT_ENTITLED',
+        current_plan: plan.id,
+        requested_tier: tier,
+      },
+      { status: 403 },
+    )
+  }
 
   const { record, plaintext } = await createApiKey(ownerId, tier)
 
@@ -78,8 +106,8 @@ export async function DELETE(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: 'id query param required', code: 'BAD_INPUT' }, { status: 400 })
   }
-  const { userId } = await auth().catch(() => ({ userId: null }))
-  const ownerId = userId || `demo-${req.headers.get('x-forwarded-for') || 'anonymous'}`
+  const { ownerId } = await resolveOwner(req)
+  if (!ownerId) return unauthorized()
 
   const ok = await revokeApiKey(id, ownerId)
   if (!ok) {
